@@ -1,17 +1,27 @@
-<div align="center">
+[English](./README.md) | 简体中文
 
-[English](./README.md) ｜ 简体中文
+# 🛡️ Skill Auditor
 
-# 🛡️ skill-auditor
+<p align="center">
+  <strong>面向 AI Skill、Agent 工具和安装脚本的轻量级安全审计工具。</strong>
+</p>
 
-**在安装任何第三方 agent skill 之前，先扫描其中的提示注入、数据外泄与危险命令。**
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Cursor-8A2BE2.svg)](#原理)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#参与贡献)
-[![topic: codex-skills](https://img.shields.io/badge/topic-codex--skills-1f6feb.svg)](https://github.com/topics/codex-skills)
-
-</div>
+<p align="center">
+  <a href="https://github.com/22WELTYANG/skill-auditor/stargazers">
+    <img src="https://img.shields.io/github/stars/22WELTYANG/skill-auditor?style=social" alt="GitHub stars">
+  </a>
+  <a href="https://github.com/22WELTYANG/skill-auditor/forks">
+    <img src="https://img.shields.io/github/forks/22WELTYANG/skill-auditor?style=social" alt="GitHub forks">
+  </a>
+  <a href="https://github.com/22WELTYANG/skill-auditor/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
+  </a>
+  <img src="https://img.shields.io/badge/Python-3.9%2B-blue" alt="Python">
+  <img src="https://img.shields.io/badge/Security-AI%20Skills-red" alt="Security">
+  <a href="https://github.com/22WELTYANG/skill-auditor/actions/workflows/python-checks.yml">
+    <img src="https://github.com/22WELTYANG/skill-auditor/actions/workflows/python-checks.yml/badge.svg" alt="Python checks">
+  </a>
+</p>
 
 ---
 
@@ -191,13 +201,15 @@ $ python scripts/scan.py examples/malicious-skill --format text
 ## 安装
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/your-org/skill-auditor/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/22WELTYANG/skill-auditor/main/install.sh | bash
 ```
 
 不想把陌生人的安装脚本直接管道喂给你的 shell（你会用这个工具，正是出于这个原因）？那就先克隆下来、读过再本地运行：
 
 ```bash
-git clone https://github.com/your-org/skill-auditor && cd skill-auditor && ./install.sh
+git clone https://github.com/22WELTYANG/skill-auditor.git
+cd skill-auditor
+bash install.sh
 ```
 
 安装脚本会把这个 skill 复制到 `~/.claude/skills` 和 `~/.codex/skills`（如果检测到 Cursor，也会复制到 `~/.cursor/skills`）。扫描时需要 Python 3.8+；PyYAML 为可选项（缺失时会自动使用内置的回退解析器）。
@@ -243,6 +255,22 @@ python scripts/scan.py https://github.com/someone/skill --format text   # GitHub
 | `logic-bomb`（逻辑炸弹） | WARNING | 载荷被日期 / 主机 / 仓库 / 运行次数等触发条件所门控 |
 
 严重级别决定结论：出现任何 **CRITICAL** → DO NOT INSTALL · 出现任何 **WARNING** → REVIEW BEFORE INSTALL · 仅有 **INFO** → SAFE TO INSTALL。
+
+---
+
+## ⭐ Star History
+
+<p align="center">
+  <a href="https://www.star-history.com/#22WELTYANG/skill-auditor&Date">
+    <img src="https://api.star-history.com/svg?repos=22WELTYANG/skill-auditor&type=Date" alt="Star History Chart">
+  </a>
+</p>
+
+---
+
+## 支持项目
+
+如果这个项目帮助你更安全地检查 AI Skill，欢迎点一个 Star。这会帮助更多开发者发现它。
 
 ---
 

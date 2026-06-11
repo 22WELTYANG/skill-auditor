@@ -3,10 +3,10 @@
 # skill-auditor installer.
 #
 #   Remote (one-liner):
-#     curl -fsSL https://raw.githubusercontent.com/your-org/skill-auditor/main/install.sh | bash
+#     curl -fsSL https://raw.githubusercontent.com/22WELTYANG/skill-auditor/main/install.sh | bash
 #
 #   Local (from a clone):
-#     ./install.sh
+#     bash install.sh
 #
 # Install targets (verified June 2026):
 #   ~/.claude/skills   Claude Code global skills dir.                  [primary]
@@ -22,7 +22,7 @@
 #
 set -euo pipefail
 
-REPO_URL="${SKILL_AUDITOR_REPO:-https://github.com/your-org/skill-auditor}"
+REPO_URL="${SKILL_AUDITOR_REPO:-https://github.com/22WELTYANG/skill-auditor}"
 SKILL_NAME="skill-auditor"
 
 say()  { printf '  %s\n' "$*"; }

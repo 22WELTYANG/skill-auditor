@@ -1,0 +1,32 @@
+name: Python checks
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check Python syntax
+        run: |
+          python -m compileall scripts
+
+      - name: Run clean fixture
+        run: |
+          python scripts/scan.py examples/clean-skill --format text
+
+      - name: Run malicious fixture
+        run: |
+          python scripts/scan.py examples/malicious-skill --format text || true

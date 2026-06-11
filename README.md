@@ -1,17 +1,27 @@
-<div align="center">
+English | [简体中文](./README.zh-CN.md)
 
-English ｜ [简体中文](./README.zh-CN.md)
+# 🛡️ Skill Auditor
 
-# 🛡️ skill-auditor
+<p align="center">
+  <strong>Security scanner for AI skills, agent tools, and install scripts.</strong>
+</p>
 
-**Scan any third-party agent skill for prompt injection, data exfiltration, and dangerous commands — before you install it.**
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Cursor-8A2BE2.svg)](#how-it-works)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
-[![topic: codex-skills](https://img.shields.io/badge/topic-codex--skills-1f6feb.svg)](https://github.com/topics/codex-skills)
-
-</div>
+<p align="center">
+  <a href="https://github.com/22WELTYANG/skill-auditor/stargazers">
+    <img src="https://img.shields.io/github/stars/22WELTYANG/skill-auditor?style=social" alt="GitHub stars">
+  </a>
+  <a href="https://github.com/22WELTYANG/skill-auditor/forks">
+    <img src="https://img.shields.io/github/forks/22WELTYANG/skill-auditor?style=social" alt="GitHub forks">
+  </a>
+  <a href="https://github.com/22WELTYANG/skill-auditor/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
+  </a>
+  <img src="https://img.shields.io/badge/Python-3.9%2B-blue" alt="Python">
+  <img src="https://img.shields.io/badge/Security-AI%20Skills-red" alt="Security">
+  <a href="https://github.com/22WELTYANG/skill-auditor/actions/workflows/python-checks.yml">
+    <img src="https://github.com/22WELTYANG/skill-auditor/actions/workflows/python-checks.yml/badge.svg" alt="Python checks">
+  </a>
+</p>
 
 ---
 
@@ -198,14 +208,16 @@ $ python scripts/scan.py examples/malicious-skill --format text
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/your-org/skill-auditor/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/22WELTYANG/skill-auditor/main/install.sh | bash
 ```
 
 Prefer to read before piping a stranger's installer into your shell (you're here
 for a reason)? Clone and run it locally:
 
 ```bash
-git clone https://github.com/your-org/skill-auditor && cd skill-auditor && ./install.sh
+git clone https://github.com/22WELTYANG/skill-auditor.git
+cd skill-auditor
+bash install.sh
 ```
 
 The installer copies the skill into `~/.claude/skills` and `~/.codex/skills`
@@ -267,8 +279,17 @@ Severity drives the verdict: any **CRITICAL** → DO NOT INSTALL · any **WARNIN
 
 ## ⭐ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=22WELTYANG/skill-auditor&type=Date)](https://www.star-history.com/#22WELTYANG/skill-auditor&Date)
+<p align="center">
+  <a href="https://www.star-history.com/#22WELTYANG/skill-auditor&Date">
+    <img src="https://api.star-history.com/svg?repos=22WELTYANG/skill-auditor&type=Date" alt="Star History Chart">
+  </a>
+</p>
 
+---
+
+## Support
+
+If this project helps you audit AI skills more safely, please consider giving it a star. It helps more developers discover the project.
 
 ---
 
