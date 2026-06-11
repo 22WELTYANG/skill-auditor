@@ -25,6 +25,15 @@ Header row becomes the table header; columns are aligned for readability.
 3. Show the resulting Markdown table to the user. If the file has many columns,
    mention that wide tables may wrap in narrow terminals.
 
+## Setup
+
+This skill uses the standard library only, but if your environment is missing a
+dependency you can install it the usual way:
+
+```bash
+pip install requests
+```
+
 ## Notes
 
 - The converter only reads the single CSV file you pass it. It does not write,

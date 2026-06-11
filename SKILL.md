@@ -12,7 +12,7 @@ description: >-
   returns a CRITICAL/WARNING/INFO report and a SAFE TO INSTALL / REVIEW BEFORE
   INSTALL / DO NOT INSTALL verdict.
   Trigger even if the user never says the words "skill-auditor".
-version: 0.2.0
+version: 0.3.0
 license: MIT
 compatible_with: [codex, claude-code, cursor]
 ---
@@ -67,19 +67,30 @@ the scope: every `SKILL.md`, everything under `references/`, and every script.
 python scripts/scan.py <target> --format json
 ```
 
-Use `--format json` so you can parse it. (`--format text` exists for humans at
-the terminal; you want the JSON.) The exit code mirrors the verdict
-(0 safe / 1 review / 2 do-not-install / 3 scan error), but rely on the parsed
-`summary` and `findings`, not just the code.
+Use `--format json` so you can parse it. (`--format pretty` — alias `text` —
+exists for humans at the terminal; `sarif` and `markdown` are also available for
+CI and PRs. You want the JSON.) The exit code is governed by `--fail-on`
+(default `critical`): 0 if nothing reaches the threshold, else nonzero (2 if any
+CRITICAL, else 1; 3 on scan error). Rely on the parsed `summary` and `findings`,
+not just the code.
+
+The same scanner gates installs: `python scripts/scan.py install <target>`
+scans first and refuses on CRITICAL (prompts on WARNING). Use it when the user
+wants to *install*, not just review. `scan --all` audits every installed skill.
 
 ### 3. Read the JSON
 
 Each finding has: `rule_id`, `category`, `severity`, `layer`, `file`, `line`,
-`snippet`, `rationale`, `guidance`, and `needs_semantic_review` (plus `id`,
-`explanation`, `recommendation` kept for back-compat). Read `summary` (counts +
-`needs_semantic_review`) and `categories`. Note the `scanned_files` list — if a
-directory you expected (e.g. `scripts/`) is missing from it, say so; an attacker
-can hide payloads in files the scan skipped.
+`snippet`, `rationale`, `guidance`, `needs_semantic_review`, `confidence`
+(`high|medium|low`), `suppressed` (+ `suppressed_reason`), and `context` (a few
+surrounding lines, for semantic findings) — plus `id`, `explanation`,
+`recommendation` kept for back-compat. Read `summary` (counts +
+`needs_semantic_review` + `suppressed`) and `categories`. Active findings are in
+`findings`; anything cleared by the allowlist, `.skill-auditor.yml`, or an inline
+`# skill-auditor: ignore` comment is moved to `suppressed` (with a reason) and
+excluded from the verdict — skim it to confirm each suppression is legitimate.
+Note the `scanned_files` list — if a directory you expected (e.g. `scripts/`) is
+missing from it, say so; an attacker can hide payloads in files the scan skipped.
 
 ### 4. Review every CRITICAL/WARNING, and especially every `needs_semantic_review`
 
@@ -94,9 +105,14 @@ surrounding context. Decide two things and write them down:
   progress. Tell the user the *story* the findings add up to.
 
 Findings with `needs_semantic_review: true` are where the scanner is *explicitly
-deferring to you* — it pre-filtered a candidate but cannot judge intent. Use each
-finding's `guidance` field as your checklist. These are the prompt-injection,
-logic-bomb, and description-mismatch categories:
+deferring to you* — it pre-filtered a candidate but cannot judge intent. Each
+carries `confidence` (deterministic hits start `high`, semantic pre-filters
+`medium`) and a `context` block of surrounding lines so you can judge without
+reopening the file. Use each finding's `guidance` field as your checklist. When
+you conclude a flagged spot is a clear false positive, **dismiss** it in your
+report: name the `rule_id`, quote the line, and state the reason it's benign
+(treat it as `confidence: low` / dismissed). Never dismiss silently. These are
+the prompt-injection, logic-bomb, and description-mismatch categories:
 
 - **Description vs. behavior** (`description-mismatch`). Read the frontmatter
   `description`, then the body. Does the body do only what the description

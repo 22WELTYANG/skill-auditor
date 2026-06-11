@@ -57,15 +57,32 @@ install_to() {
 }
 
 # --- decide where to install ------------------------------------------------ #
-if [ -n "${SKILLS_DIR:-}" ]; then
+# Single source of truth for install targets is scripts/paths.py, so the dir
+# list never drifts between the installer and the scanner. Fall back to the
+# hardcoded list only if Python isn't available to evaluate it.
+PYBIN="$(command -v python3 || command -v python || true)"
+TARGETS=""
+if [ -n "$PYBIN" ] && [ -f "$SRC/scripts/paths.py" ]; then
+  TARGETS="$("$PYBIN" "$SRC/scripts/paths.py" --install-targets 2>/dev/null || true)"
+fi
+
+if [ -n "$TARGETS" ]; then
+  # paths.py already applied SKILLS_DIR override + Cursor-presence logic.
+  while IFS= read -r parent; do
+    [ -n "$parent" ] && install_to "$parent"
+  done <<EOF
+$TARGETS
+EOF
+  if [ -z "${SKILLS_DIR:-}" ] && [ -d "$HOME/.cursor" ]; then
+    note "Cursor: newer versions auto-load from ~/.claude/skills; the ~/.cursor copy is only a fallback for older versions."
+  fi
+elif [ -n "${SKILLS_DIR:-}" ]; then
   install_to "$SKILLS_DIR"
 else
-  # primary targets (always installed)
+  # fallback (Python unavailable): keep in sync with scripts/paths.py
   install_to "$HOME/.claude/skills"
   install_to "$HOME/.codex/skills"
-  # forward-looking neutral location
   install_to "$HOME/.agents/skills"
-  # Cursor fallback: only if the user actually has Cursor
   if [ -d "$HOME/.cursor" ]; then
     install_to "$HOME/.cursor/skills"
     note "Cursor: newer versions auto-load from ~/.claude/skills; this ~/.cursor copy is only a fallback for older versions."
