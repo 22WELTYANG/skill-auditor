@@ -43,9 +43,9 @@ first, then trust."*
 $ python scripts/scan.py examples/malicious-skill --format text
 
 ================================================================
- skill-auditor v0.3.0 - scan report
+ skill-auditor v0.4.0 - scan report
  target : examples/malicious-skill
- files  : 3 scanned   rules: 27
+ files  : 3 scanned   rules: 50
  totals : 15 CRITICAL  5 WARNING  0 INFO   (6 need semantic review)
 ================================================================
 
@@ -84,9 +84,9 @@ INSTALL** — no false positives.
 $ python scripts/scan.py examples/malicious-skill --format text
 
 ================================================================
- skill-auditor v0.3.0 - scan report
+ skill-auditor v0.4.0 - scan report
  target : examples/malicious-skill
- files  : 3 scanned   rules: 27
+ files  : 3 scanned   rules: 50
  totals : 15 CRITICAL  5 WARNING  0 INFO   (6 need semantic review)
 ================================================================
 
@@ -207,6 +207,44 @@ $ python scripts/scan.py examples/malicious-skill --format text
 
 ## Install
 
+### Python package
+
+Python 3.9 or newer:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install .
+skill-auditor examples/clean-skill --format text
+```
+
+For development:
+
+```bash
+python -m pip install -e ".[test]"
+python -m pytest
+```
+
+### Windows PowerShell
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e ".[test]"
+skill-auditor .\examples\clean-skill --format json
+```
+
+To install the Agent Skill itself into the known Claude Code, Codex, and Agent
+skill directories:
+
+```powershell
+.\install.ps1
+# If local policy blocks scripts:
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+### Shell installer
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/22WELTYANG/skill-auditor/main/install.sh | bash
 ```
@@ -228,15 +266,23 @@ optional (a built-in fallback parser is used if it's absent).
 
 ## Usage
 
-Run the scanner against a local directory or a GitHub URL:
+Run the scanner against a local directory, supported zip/tar archive, or GitHub URL:
 
 ```bash
-python scripts/scan.py ./path/to/skill --format text                 # local directory
-python scripts/scan.py https://github.com/someone/skill --format text   # GitHub URL
+skill-auditor ./path/to/skill --format text
+skill-auditor ./path/to/skill.zip --format json
+skill-auditor https://github.com/someone/skill --format text
+python -m skill_auditor ./path/to/skill
+python scripts/scan.py ./path/to/skill  # backward compatible
 ```
 
 Add `--format json` for machine-readable output. Exit code is the verdict:
 `0` safe · `1` review · `2` do-not-install · `3` scan error.
+
+Suppressions are never trusted from the scanned skill. Pass a reviewer-owned
+configuration outside the target with `--config /trusted/auditor.yml`.
+`--min-severity` only filters displayed findings; verdicts and exit codes always
+use the complete result set.
 
 Through your agent it's even simpler — just ask *"is this skill safe to
 install?"* and the skill triggers automatically, adding the semantic layer below.
@@ -271,6 +317,12 @@ Code**, **Codex**, and **Cursor**, one auditor covers all three.
 | `description-mismatch` | WARNING  | Stated purpose ≠ what the body actually does                                    |
 | `obfuscation`          | WARNING  | Base64/hex payloads decoded and piped into a shell,`eval` of assembled strings |
 | `logic-bomb`           | WARNING  | Payload gated behind a date / host / repo / run-count trigger                    |
+| `filesystem-boundary`  | CRITICAL | Symlinks, junctions, cycles, and paths that escape the audited root               |
+| `powershell`            | CRITICAL | Encoded commands, hidden launches, and download-then-execute chains               |
+| `dynamic-execution`     | WARNING  | Python/Node dynamic imports, evaluation, and shell-capable child processes         |
+| `archive-risk`          | CRITICAL | Zip Slip, archive links, hidden hooks, and resource-exhaustion archives            |
+| `git-hook`              | CRITICAL | Hook installation and `core.hooksPath` persistence                                |
+| `mcp-tampering`         | CRITICAL | Writes or replaces Claude, Cursor, or Codex MCP server configuration               |
 
 Severity drives the verdict: any **CRITICAL** → DO NOT INSTALL · any **WARNING**
 → REVIEW BEFORE INSTALL · only **INFO** → SAFE TO INSTALL.

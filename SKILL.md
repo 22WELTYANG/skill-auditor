@@ -12,7 +12,7 @@ description: >-
   returns a CRITICAL/WARNING/INFO report and a SAFE TO INSTALL / REVIEW BEFORE
   INSTALL / DO NOT INSTALL verdict.
   Trigger even if the user never says the words "skill-auditor".
-version: 0.3.0
+version: 0.4.0
 license: MIT
 compatible_with: [codex, claude-code, cursor]
 ---
@@ -64,7 +64,7 @@ the scope: every `SKILL.md`, everything under `references/`, and every script.
 ### 2. Run the deterministic scanner
 
 ```bash
-python scripts/scan.py <target> --format json
+skill-auditor <target> --format json
 ```
 
 Use `--format json` so you can parse it. (`--format pretty` — alias `text` —
@@ -74,7 +74,7 @@ CI and PRs. You want the JSON.) The exit code is governed by `--fail-on`
 CRITICAL, else 1; 3 on scan error). Rely on the parsed `summary` and `findings`,
 not just the code.
 
-The same scanner gates installs: `python scripts/scan.py install <target>`
+The same scanner gates installs: `skill-auditor install <target>`
 scans first and refuses on CRITICAL (prompts on WARNING). Use it when the user
 wants to *install*, not just review. `scan --all` audits every installed skill.
 
@@ -86,9 +86,10 @@ Each finding has: `rule_id`, `category`, `severity`, `layer`, `file`, `line`,
 surrounding lines, for semantic findings) — plus `id`, `explanation`,
 `recommendation` kept for back-compat. Read `summary` (counts +
 `needs_semantic_review` + `suppressed`) and `categories`. Active findings are in
-`findings`; anything cleared by the allowlist, `.skill-auditor.yml`, or an inline
-`# skill-auditor: ignore` comment is moved to `suppressed` (with a reason) and
-excluded from the verdict — skim it to confirm each suppression is legitimate.
+`findings`; anything cleared by the reviewer-owned configuration passed through
+`--config <path>` is moved to `suppressed` (with a reason) and excluded from the
+verdict. Configuration and inline ignore comments inside the scanned skill are
+untrusted and never suppress findings.
 Note the `scanned_files` list — if a directory you expected (e.g. `scripts/`) is
 missing from it, say so; an attacker can hide payloads in files the scan skipped.
 

@@ -1,0 +1,34 @@
+rules:
+  - id: PS-001
+    category: powershell
+    severity: WARNING
+    layer: deterministic
+    files: '*.ps1'
+    pattern: '(?i)\b(?:Invoke-Expression|IEX)\b'
+    rationale: Executes dynamically constructed PowerShell code, which can conceal the command that actually runs.
+    guidance: ''
+  - id: PS-002
+    category: powershell
+    severity: CRITICAL
+    layer: deterministic
+    files: '*.ps1,*.bat,*.cmd'
+    pattern: '(?i)(?:-EncodedCommand|-enc\b)[^\n]*[A-Za-z0-9+/]{20,}={0,2}'
+    rationale: Launches PowerShell with an encoded command, a common way to hide a payload from review.
+    guidance: ''
+  - id: PS-003
+    category: powershell
+    severity: WARNING
+    layer: deterministic
+    files: '*.ps1'
+    pattern: '(?i)\bStart-Process\b[^\n]*(?:-WindowStyle\s+Hidden|-Verb\s+RunAs)'
+    rationale: Starts a hidden or elevated process, increasing stealth or privilege.
+    guidance: ''
+  - id: PS-004
+    category: powershell
+    severity: CRITICAL
+    layer: deterministic
+    files: '*.ps1'
+    check: powershell-download-exec
+    rationale: Downloads content and executes it in the same PowerShell script.
+    guidance: ''
+

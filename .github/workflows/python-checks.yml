@@ -2,34 +2,58 @@ name: Python checks
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
-  check:
+  cross-platform:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.12"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install editable package and test dependencies
+        run: python -m pip install -e ".[test]"
+      - name: Compile sources
+        run: python -m compileall src scripts tests
+      - name: Check generated catalog
+        run: python scripts/render_catalog.py --check
+      - name: Run zero-dependency regression suite
+        run: python scripts/run_tests.py
+      - name: Run pytest contracts
+        run: python -m pytest
+      - name: Verify console and module entry points
+        run: |
+          skill-auditor --version
+          python -m skill_auditor --version
+          skill-auditor examples/clean-skill --format json
+          skill-auditor examples/clean-skill --format text
+          skill-auditor examples/clean-skill --format markdown
+          skill-auditor examples/clean-skill --format sarif
+
+  compatibility:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        # Pin both ends of the supported range. No PyYAML is installed, so this
-        # also proves the zero-dependency fallback parsers work on each version.
-        python-version: [ "3.9", "3.12" ]
-
+        python-version: ["3.9", "3.13"]
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Compile all sources
-        run: python -m compileall scripts tests
-
-      - name: Catalog is up to date with rules/
-        run: python scripts/render_catalog.py --check
-
-      - name: Regression suite (rules + fixtures + suppression)
-        run: python scripts/run_tests.py
+      - name: Run without site packages to exercise YAML fallback
+        run: python -S scripts/run_tests.py
+      - name: Build and install wheel
+        run: |
+          python -m pip install build
+          python -m build
+          python -m pip install dist/*.whl
+          skill-auditor --version

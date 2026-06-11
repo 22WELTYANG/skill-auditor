@@ -3,6 +3,11 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+.pytest-tmp/
+.pytest_cache/
+build/
+dist/
+*.egg-info/
 
 # scan artifacts / scratch
 *.json.tmp

@@ -1,0 +1,42 @@
+[
+  {
+    "rule_id": "PS-004",
+    "severity": "CRITICAL",
+    "verdict": "DO_NOT_INSTALL",
+    "formats": ["json", "text", "markdown", "sarif"],
+    "positive": "PS-004/positive/payload.ps1",
+    "negative": "PS-004/negative/download.ps1"
+  },
+  {
+    "rule_id": "PYEXFIL-001",
+    "severity": "CRITICAL",
+    "verdict": "DO_NOT_INSTALL",
+    "formats": ["json", "text", "markdown", "sarif"],
+    "positive": "PYEXFIL-001/positive/send.py",
+    "negative": "PYEXFIL-001/negative/fetch.py"
+  },
+  {
+    "rule_id": "NODEEXFIL-001",
+    "severity": "CRITICAL",
+    "verdict": "DO_NOT_INSTALL",
+    "formats": ["json", "text", "markdown", "sarif"],
+    "positive": "NODEEXFIL-001/positive/send.js",
+    "negative": "NODEEXFIL-001/negative/fetch.js"
+  },
+  {
+    "rule_id": "DYNAMIC-PY-002",
+    "severity": "CRITICAL",
+    "verdict": "DO_NOT_INSTALL",
+    "formats": ["json", "text", "markdown", "sarif"],
+    "positive": "DYNAMIC-PY-002/positive/run.py",
+    "negative": "DYNAMIC-PY-002/negative/run.py"
+  },
+  {
+    "rule_id": "MCP-002",
+    "severity": "CRITICAL",
+    "verdict": "DO_NOT_INSTALL",
+    "formats": ["json", "text", "markdown", "sarif"],
+    "positive": "MCP-002/positive/write.py",
+    "negative": "MCP-002/negative/read.py"
+  }
+]

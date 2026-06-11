@@ -1,0 +1,30 @@
+rules:
+  - id: ARCHIVE-001
+    category: archive-risk
+    severity: CRITICAL
+    layer: deterministic
+    check: archive-path-traversal
+    rationale: An archive member uses an absolute or parent-relative path and could overwrite files outside an extraction directory.
+    guidance: ''
+  - id: ARCHIVE-002
+    category: archive-risk
+    severity: CRITICAL
+    layer: deterministic
+    check: archive-link
+    rationale: An archive contains a symbolic or hard link that can redirect extraction outside the intended directory.
+    guidance: ''
+  - id: ARCHIVE-003
+    category: archive-risk
+    severity: WARNING
+    layer: deterministic
+    check: archive-hidden-executable
+    rationale: An archive contains an executable script or Git hook that may run after extraction.
+    guidance: ''
+  - id: ARCHIVE-004
+    category: archive-risk
+    severity: WARNING
+    layer: deterministic
+    check: archive-resource-limit
+    rationale: An archive has a suspicious compression ratio or expanded size and may exhaust local resources.
+    guidance: ''
+

@@ -37,9 +37,9 @@
 $ python scripts/scan.py examples/malicious-skill --format text
 
 ================================================================
- skill-auditor v0.3.0 - scan report
+ skill-auditor v0.4.0 - scan report
  target : examples/malicious-skill
- files  : 3 scanned   rules: 27
+ files  : 3 scanned   rules: 50
  totals : 15 CRITICAL  5 WARNING  0 INFO   (6 need semantic review)
 ================================================================
 
@@ -77,9 +77,9 @@ $ python scripts/scan.py examples/malicious-skill --format text
 $ python scripts/scan.py examples/malicious-skill --format text
 
 ================================================================
- skill-auditor v0.3.0 - scan report
+ skill-auditor v0.4.0 - scan report
  target : examples/malicious-skill
- files  : 3 scanned   rules: 27
+ files  : 3 scanned   rules: 50
  totals : 15 CRITICAL  5 WARNING  0 INFO   (6 need semantic review)
 ================================================================
 
@@ -200,6 +200,43 @@ $ python scripts/scan.py examples/malicious-skill --format text
 
 ## 安装
 
+### Python 包
+
+需要 Python 3.9 或更高版本：
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install .
+skill-auditor examples/clean-skill --format text
+```
+
+开发环境：
+
+```bash
+python -m pip install -e ".[test]"
+python -m pytest
+```
+
+### Windows PowerShell
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e ".[test]"
+skill-auditor .\examples\clean-skill --format json
+```
+
+安装 Agent Skill 本体：
+
+```powershell
+.\install.ps1
+# 如果本机策略阻止脚本：
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+### Shell 安装器
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/22WELTYANG/skill-auditor/main/install.sh | bash
 ```
@@ -218,14 +255,21 @@ bash install.sh
 
 ## 使用
 
-针对本地目录或 GitHub URL 运行扫描器：
+针对本地目录、zip/tar 归档或 GitHub URL 运行扫描器：
 
 ```bash
-python scripts/scan.py ./path/to/skill --format text                 # 本地目录
-python scripts/scan.py https://github.com/someone/skill --format text   # GitHub URL
+skill-auditor ./path/to/skill --format text
+skill-auditor ./path/to/skill.zip --format json
+skill-auditor https://github.com/someone/skill --format text
+python -m skill_auditor ./path/to/skill
+python scripts/scan.py ./path/to/skill  # 兼容旧入口
 ```
 
 加上 `--format json` 可输出机器可读格式。退出码即为结论：`0` 安全 · `1` 需复核 · `2` 不要安装 · `3` 扫描出错。
+
+被扫描 Skill 自带的 suppression 不受信任。需要抑制误报时，使用
+`--config C:\trusted\auditor.yml` 指向扫描目标之外、由审计者维护的配置。
+`--min-severity` 只过滤显示内容，不会改变 verdict 或退出码。
 
 通过你的 agent 使用则更简单——只需问一句*「这个 skill 装着安全吗？」*，skill 会自动触发，并叠加下文所说的语义层。
 
@@ -253,6 +297,12 @@ python scripts/scan.py https://github.com/someone/skill --format text   # GitHub
 | `description-mismatch`（描述不符） | WARNING | 声称的用途 ≠ 正文实际所做的事 |
 | `obfuscation`（混淆） | WARNING | 把 Base64/十六进制载荷解码后管道进 shell，或 `eval` 拼接出来的字符串 |
 | `logic-bomb`（逻辑炸弹） | WARNING | 载荷被日期 / 主机 / 仓库 / 运行次数等触发条件所门控 |
+| `filesystem-boundary`（文件边界） | CRITICAL | 符号链接、junction、循环和目录越界 |
+| `powershell` | CRITICAL | 编码命令、隐藏进程和下载后执行 |
+| `dynamic-execution`（动态执行） | WARNING | Python/Node 动态导入、求值和 shell 子进程 |
+| `archive-risk`（归档风险） | CRITICAL | Zip Slip、归档链接、隐藏 hook 和资源耗尽 |
+| `git-hook` | CRITICAL | 安装 Git hook 或篡改 `core.hooksPath` |
+| `mcp-tampering`（MCP 篡改） | CRITICAL | 修改 Claude、Cursor 或 Codex MCP 配置 |
 
 严重级别决定结论：出现任何 **CRITICAL** → DO NOT INSTALL · 出现任何 **WARNING** → REVIEW BEFORE INSTALL · 仅有 **INFO** → SAFE TO INSTALL。
 

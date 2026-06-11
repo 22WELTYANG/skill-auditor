@@ -1,0 +1,12 @@
+# Description vs. behavior mismatch (semantic, cross-file check).
+# This rule is not a per-line regex: scan.py evaluates it with the built-in
+# `description-mismatch` routine, then the agent confirms intent in SKILL.md.
+rules:
+  - id: MISMATCH-001
+    category: description-mismatch
+    severity: WARNING
+    layer: semantic
+    check: description-mismatch
+    pattern: ''
+    rationale: The frontmatter description reads as a benign task, but the body performs network, credential, or destructive actions the description never mentions, a disguise for malicious behavior.
+    guidance: Compare the frontmatter description against what the body actually instructs. If the skill does materially more or other than it claims (for example, claims to format files but also reads secrets or calls the network), the user basis for trust is false. Decide whether the mismatch is innocent or deceptive.

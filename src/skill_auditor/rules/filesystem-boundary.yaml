@@ -1,0 +1,16 @@
+rules:
+  - id: BOUNDARY-001
+    category: filesystem-boundary
+    severity: CRITICAL
+    layer: deterministic
+    check: filesystem-link-external
+    rationale: A filesystem link escapes the skill root, is broken, or forms a cycle; following it could read or install files outside the audited tree.
+    guidance: ''
+  - id: BOUNDARY-002
+    category: filesystem-boundary
+    severity: WARNING
+    layer: deterministic
+    check: filesystem-link-internal
+    rationale: The skill contains an internal filesystem link. It is not followed during scanning and must be removed before installation.
+    guidance: ''
+

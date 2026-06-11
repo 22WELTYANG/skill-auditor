@@ -1,0 +1,18 @@
+rules:
+  - id: PYEXFIL-001
+    category: data-exfiltration
+    severity: CRITICAL
+    layer: deterministic
+    files: '*.py'
+    check: python-exfiltration
+    rationale: A Python script combines a sensitive local-data source with a network or subprocess upload sink.
+    guidance: ''
+  - id: NODEEXFIL-001
+    category: data-exfiltration
+    severity: CRITICAL
+    layer: deterministic
+    files: '*.js,*.mjs,*.cjs,*.ts'
+    check: node-exfiltration
+    rationale: A Node script combines a sensitive local-data source with an HTTP or child-process upload sink.
+    guidance: ''
+

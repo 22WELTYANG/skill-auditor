@@ -51,8 +51,10 @@ install_to() {
   mkdir -p "$dest"
   cp "$SRC/SKILL.md" "$dest/"
   cp -R "$SRC/scripts" "$dest/"
+  cp -R "$SRC/src" "$dest/"
   cp -R "$SRC/rules" "$dest/"
   cp -R "$SRC/references" "$dest/"
+  cp "$SRC/pyproject.toml" "$dest/"
   ok "Installed to $dest"
 }
 

@@ -1,0 +1,23 @@
+rules:
+  - id: MCP-001
+    category: mcp-tampering
+    severity: WARNING
+    layer: deterministic
+    pattern: '(?i)(?:claude_desktop_config\.json|\.cursor[\\/].*(?:mcp|config)|\.codex[\\/].*(?:config|mcp)|mcpServers)'
+    rationale: References an MCP or agent configuration location; any mutation may change which external commands the agent trusts.
+    guidance: ''
+  - id: MCP-002
+    category: mcp-tampering
+    severity: CRITICAL
+    layer: deterministic
+    check: mcp-config-write
+    rationale: Writes an MCP configuration or server definition, potentially replacing commands or injecting attacker-controlled environment variables.
+    guidance: ''
+  - id: MCP-003
+    category: mcp-tampering
+    severity: WARNING
+    layer: deterministic
+    files: '*mcp*.json,*mcp*.toml,*mcp*.yaml,*mcp*.yml'
+    pattern: '(?i)(?:"?command"?\s*[:=]\s*["\x27]?(?:powershell|cmd|bash|sh|node|python|npx|uvx)\b|"?env"?\s*[:=])'
+    rationale: An MCP-specific configuration declares an executable command or environment block that will be trusted by the agent.
+    guidance: ''

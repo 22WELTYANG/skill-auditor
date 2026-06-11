@@ -1,0 +1,31 @@
+# Obfuscation / evasion rules (deterministic).
+# Edit rules here, then run scripts/render_catalog.py to refresh the catalog.
+rules:
+  - id: OBFUS-001
+    category: obfuscation
+    severity: CRITICAL
+    layer: deterministic
+    pattern: '\bbase64\s+(?:--decode|-d|-D)\b[^\n]*\|\s*(?:sudo\s+)?(?:sh|bash|zsh|dash|python[0-9.]*|perl|ruby|node|eval)\b'
+    rationale: Decodes a base64 blob and pipes it straight into an interpreter, hiding what is actually executed.
+    guidance: ''
+  - id: OBFUS-002
+    category: obfuscation
+    severity: CRITICAL
+    layer: deterministic
+    pattern: '\b(?:eval|exec)\b[^\n]*\$\([^)]*(?:printf|echo|base64|xxd|od|curl|wget)[^)]*\)'
+    rationale: Evaluates the output of a decode, print, or fetch command, a common way to obscure a payload.
+    guidance: ''
+  - id: OBFUS-003
+    category: obfuscation
+    severity: WARNING
+    layer: deterministic
+    pattern: '(?:\\x[0-9a-fA-F]{2}){4,}'
+    rationale: Long hex-escape sequence, often a payload encoded to evade plain-text scanning.
+    guidance: ''
+  - id: OBFUS-004
+    category: obfuscation
+    severity: CRITICAL
+    layer: deterministic
+    pattern: '\b(?:xxd\s+-r|base32\s+(?:-d|--decode))\b[^\n]*\|\s*(?:sh|bash|python[0-9.]*|perl|node|eval)\b'
+    rationale: Decodes hex or base32 data and pipes it into a shell, obfuscated execution.
+    guidance: ''

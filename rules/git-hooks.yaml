@@ -1,0 +1,15 @@
+rules:
+  - id: GITHOOK-001
+    category: git-hook
+    severity: CRITICAL
+    layer: deterministic
+    pattern: '(?i)(?:git\s+config[^\n]*core\.hooksPath|(?:(?:write|copy|move|install|Set-Content|Out-File|>>|cp\s|mv\s)[^\n]*(?:\.git[\\/]hooks[\\/]|core\.hooksPath)|(?:\.git[\\/]hooks[\\/]|core\.hooksPath)[^\n]*(?:write|copy|move|install|Set-Content|Out-File|>>|cp\s|mv\s)))'
+    rationale: Installs or redirects Git hooks, creating code execution tied to normal repository operations.
+    guidance: ''
+  - id: GITHOOK-002
+    category: git-hook
+    severity: WARNING
+    layer: deterministic
+    pattern: '(?i)(?:(?:chmod|write|copy|install|Set-Content|Out-File)[^\n]*(?:pre-commit|post-checkout|post-merge|pre-push|commit-msg|prepare-commit-msg)|(?:pre-commit|post-checkout|post-merge|pre-push|commit-msg|prepare-commit-msg)[^\n]*(?:chmod|write|copy|install|Set-Content|Out-File))'
+    rationale: Creates or activates a named Git hook and should be reviewed for persistence.
+    guidance: ''

