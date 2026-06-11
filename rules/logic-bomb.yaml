@@ -1,0 +1,11 @@
+# Logic-bomb rules (semantic).
+# `pattern` pre-filters a suspicious gating condition; the agent inspects the
+# guarded branch in SKILL.md's semantic-review step. Run render_catalog.py after edits.
+rules:
+  - id: LOGICBOMB-001
+    category: logic-bomb
+    severity: WARNING
+    layer: semantic
+    pattern: '(?i)\b(?:if|elif|case|when)\b[^\n]*(?:\$\(\s*date\b|`date\b|\bdate\s+\+|\$RANDOM\b|\bhostname\b|\bwhoami\b|\buname\b|-d\s+["\x27]?[^\n]*\.git|\bHOSTNAME\b|\bUSER\b\s*=)'
+    rationale: A branch gated on the date, a random value, the hostname, the user, or a specific repo can hide a payload until a trigger fires, a logic bomb.
+    guidance: Inspect what the guarded branch does. If a network call, file deletion, or exec is hidden behind a date, hostname, repo, or run-count condition, treat the gating as deliberate concealment of a time- or context-triggered payload.

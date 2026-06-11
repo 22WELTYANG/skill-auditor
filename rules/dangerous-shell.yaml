@@ -1,0 +1,59 @@
+# Dangerous-shell rules (deterministic).
+# Edit rules here, then run scripts/render_catalog.py to refresh the catalog.
+rules:
+  - id: SHELL-001
+    category: dangerous-shell
+    severity: CRITICAL
+    layer: deterministic
+    pattern: '\b(?:curl|wget|fetch)\b[^|\n]*\|\s*(?:sudo\s+)?(?:sh|bash|zsh|ksh|dash|python[0-9.]*|perl|ruby|node)\b'
+    rationale: Downloads a remote script and executes it immediately; the remote content can change after review and runs with your privileges.
+    guidance: ''
+  - id: SHELL-002
+    category: dangerous-shell
+    severity: CRITICAL
+    layer: deterministic
+    pattern: '\brm\s+(?:-\S+\s+)*-[a-zA-Z]*(?:rf|fr|r[a-zA-Z]*f|f[a-zA-Z]*r)\b'
+    rationale: Recursive forced delete (rm -rf); irreversible mass deletion if the path is wrong or attacker-controlled.
+    guidance: ''
+  - id: SHELL-003
+    category: dangerous-shell
+    severity: CRITICAL
+    layer: deterministic
+    pattern: '--no-preserve-root'
+    rationale: Disables the guard that stops rm -rf from wiping the filesystem root.
+    guidance: ''
+  - id: SHELL-004
+    category: dangerous-shell
+    severity: WARNING
+    layer: deterministic
+    pattern: '(?:>>|\btee\s+(?:-a\s+)?)[^\n]*(?:\.bashrc|\.zshrc|\.bash_profile|\.profile|\.zprofile|\.bash_aliases|\.config/fish/config\.fish)\b'
+    rationale: Appends to a shell startup file, a persistence mechanism whose code runs on every new shell.
+    guidance: ''
+  - id: SHELL-005
+    category: dangerous-shell
+    severity: CRITICAL
+    layer: deterministic
+    pattern: '\bdd\b[^\n]*\bof=/dev/(?:sd|nvme|hd|disk|mmcblk)|\bmkfs(?:\.\w+)?\b|>\s*/dev/(?:sd|nvme|hd)\b'
+    rationale: Writes directly to a raw disk device, which can destroy a filesystem or whole drive.
+    guidance: ''
+  - id: SHELL-006
+    category: dangerous-shell
+    severity: WARNING
+    layer: deterministic
+    pattern: '\bhistory\s+-c\b|\bunset\s+HISTFILE\b|HISTFILE=/dev/null|\brm\b[^\n]*\.bash_history'
+    rationale: Clears or disables shell history, a way to hide what commands were run.
+    guidance: ''
+  - id: SHELL-007
+    category: dangerous-shell
+    severity: WARNING
+    layer: deterministic
+    pattern: '\bchmod\s+(?:-\S+\s+)*(?:0?777|a\+rwx|ugo\+rwx)\b'
+    rationale: Grants world-writable or executable permissions, weakening security and enabling later tampering.
+    guidance: ''
+  - id: SHELL-008
+    category: dangerous-shell
+    severity: INFO
+    layer: deterministic
+    pattern: '\bsudo\b'
+    rationale: Requests root or admin privileges, raising the blast radius of everything else in the skill.
+    guidance: ''

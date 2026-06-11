@@ -1,0 +1,31 @@
+# Data-exfiltration rules (deterministic).
+# Edit rules here, then run scripts/render_catalog.py to refresh the catalog.
+rules:
+  - id: EXFIL-001
+    category: data-exfiltration
+    severity: CRITICAL
+    layer: deterministic
+    pattern: '\b(?:curl|wget)\b[^\n]*\s(?:--data(?:-binary|-raw|-urlencode)?|--form|--upload-file|--post-data|--post-file|--body-data|--body-file|-d|-F|-T)\b'
+    rationale: Uploads a request body to an external host, a direct channel for shipping local files, env vars, or conversation data off the machine.
+    guidance: ''
+  - id: EXFIL-002
+    category: data-exfiltration
+    severity: CRITICAL
+    layer: deterministic
+    pattern: '\b(?:cat|tail|head|env|printenv|base64|tar|zip|gzip|find)\b[^|\n]*\|[^\n]*\b(?:curl|wget|nc|ncat|netcat|socat|telnet)\b'
+    rationale: Reads local data and pipes it straight into a network tool, the classic collect-then-send exfiltration shape.
+    guidance: ''
+  - id: EXFIL-003
+    category: data-exfiltration
+    severity: CRITICAL
+    layer: deterministic
+    pattern: '(?:\b(?:curl|wget|fetch|requests\.(?:post|get|put))\b|https?://)[^\n]*\$\{?[A-Z0-9_]*(?:KEY|TOKEN|SECRET|PASS|CRED|AUTH)[A-Z0-9_]*\}?'
+    rationale: Places a secret-shaped environment variable (API key, token, password) into a network call.
+    guidance: ''
+  - id: EXFIL-004
+    category: data-exfiltration
+    severity: CRITICAL
+    layer: deterministic
+    pattern: '(?i)\b(?:webhook\.site|requestbin\.(?:com|net)|pipedream\.net|ngrok\.(?:io|app|dev)|burpcollaborator\.net|interact\.sh|oast\.(?:pro|live|site|fun|me)|requestcatcher\.com|hookbin\.com|beeceptor\.com|mockbin\.org)\b'
+    rationale: References a known request-collector or tunnel service commonly used to receive exfiltrated data.
+    guidance: ''

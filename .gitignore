@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# scan artifacts / scratch
+*.json.tmp
+mal.json
+cl.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
