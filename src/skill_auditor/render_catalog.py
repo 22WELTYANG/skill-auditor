@@ -10,6 +10,7 @@ from . import rules_loader as rl
 
 SOURCE_ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = SOURCE_ROOT / "references" / "risk-patterns.md"
+RULES_SOURCE = SOURCE_ROOT / "rules"
 
 HEADER = """<!-- AUTO-GENERATED from rules/, do not edit by hand. Run: python scripts/render_catalog.py -->
 
@@ -52,13 +53,57 @@ def render(rules: list[dict]) -> str:
     return "\n".join(parts).rstrip() + "\n"
 
 
+def _rule_texts(directory: Path) -> dict[str, str]:
+    return {path.name: path.read_text(encoding="utf-8")
+            for path in sorted(directory.glob("*.yaml"))}
+
+
+def sync_packaged_rules() -> list[str]:
+    """Mirror the root rules/ (single source of truth) into the package."""
+    source = _rule_texts(RULES_SOURCE)
+    changed = []
+    for name, text in source.items():
+        destination = rl.DEFAULT_RULES_DIR / name
+        if not destination.exists() or destination.read_text(encoding="utf-8") != text:
+            with destination.open("w", encoding="utf-8", newline="\n") as handle:
+                handle.write(text)
+            changed.append(name)
+    for path in sorted(rl.DEFAULT_RULES_DIR.glob("*.yaml")):
+        if path.name not in source:
+            path.unlink()
+            changed.append(path.name)
+    return changed
+
+
+def packaged_rules_in_sync() -> bool:
+    return _rule_texts(RULES_SOURCE) == _rule_texts(rl.DEFAULT_RULES_DIR)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--rules-dir", default=None)
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--stdout", action="store_true")
     args = parser.parse_args(argv)
-    rules = rl.load_rules(args.rules_dir) if args.rules_dir else rl.load_rules()
+    # Inside the repository the root rules/ is the single source of truth;
+    # in an installed wheel it does not exist and only the packaged copy runs.
+    repo_layout = args.rules_dir is None and RULES_SOURCE.is_dir()
+    if repo_layout and args.check and not packaged_rules_in_sync():
+        print(
+            "stale: src/skill_auditor/rules/ differs from rules/ "
+            "(run: python scripts/render_catalog.py)",
+            file=sys.stderr,
+        )
+        return 1
+    if repo_layout and not args.check and not args.stdout:
+        for name in sync_packaged_rules():
+            print(f"synced rules/{name} -> src/skill_auditor/rules/{name}")
+    if args.rules_dir:
+        rules = rl.load_rules(args.rules_dir)
+    elif repo_layout:
+        rules = rl.load_rules(RULES_SOURCE)
+    else:
+        rules = rl.load_rules()
     content = render(rules)
     if args.stdout:
         print(content)
