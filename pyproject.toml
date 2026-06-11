@@ -45,4 +45,4 @@ skill_auditor = ["rules/*.yaml"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
-addopts = "-q -p no:cacheprovider --basetemp=.pytest-tmp"
+addopts = "-q -p no:cacheprovider"
