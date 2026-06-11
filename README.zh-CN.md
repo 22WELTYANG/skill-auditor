@@ -1,33 +1,27 @@
 <div align="center">
 
-English ｜ [简体中文](./README.zh-CN.md)
+[English](./README.md) ｜ 简体中文
 
 # 🛡️ skill-auditor
 
-**Scan any third-party agent skill for prompt injection, data exfiltration, and dangerous commands — before you install it.**
+**在安装任何第三方 agent skill 之前，先扫描其中的提示注入、数据外泄与危险命令。**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Cursor-8A2BE2.svg)](#how-it-works)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
+[![Platform](https://img.shields.io/badge/platform-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Cursor-8A2BE2.svg)](#原理)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#参与贡献)
 [![topic: codex-skills](https://img.shields.io/badge/topic-codex--skills-1f6feb.svg)](https://github.com/topics/codex-skills)
 
 </div>
 
 ---
 
-## Why
+## 为什么需要它
 
-Installing a skill from a stranger isn't like installing a normal dependency — it
-injects that stranger's instructions straight into your agent's context, which
-your agent then carries out with *your* files, *your* shell, and *your*
-credentials. A skill is untrusted **code** and an untrusted **prompt** at once,
-and almost nobody reviews them. `skill-auditor` does, in the one place it
-matters: **before install.** It turns *"trust a stranger's prompt"* into *"scan
-first, then trust."*
+安装一个陌生人写的 skill，和安装普通依赖完全不是一回事——它会把那个陌生人的指令直接注入你的 agent 上下文，而你的 agent 随后就会用*你的*文件、*你的*终端、*你的*凭据去执行这些指令。一个 skill 同时是不可信的**代码**和不可信的**提示词**，却几乎没人会去审查它。`skill-auditor` 会审查，而且就在最关键的那一刻：**安装之前。** 它把*「信任一个陌生人的提示词」*变成*「先扫描，再信任」*。
 
 ---
 
-## Demo
+## 演示
 
 ```text
 $ python scripts/scan.py examples/malicious-skill --format text
@@ -64,11 +58,10 @@ $ python scripts/scan.py examples/malicious-skill --format text
 ================================================================
 ```
 
-The clean fixture (`examples/clean-skill/`) reports `0 / 0 / 0` and **SAFE TO
-INSTALL** — no false positives.
+干净的样例（`examples/clean-skill/`）会报告 `0 / 0 / 0` 并给出 **SAFE TO INSTALL**——没有误报。
 
 <details>
-<summary>Full output (20 findings)</summary>
+<summary>完整输出（20 条结果）</summary>
 
 ```text
 $ python scripts/scan.py examples/malicious-skill --format text
@@ -195,95 +188,76 @@ $ python scripts/scan.py examples/malicious-skill --format text
 
 ---
 
-## Install
+## 安装
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/your-org/skill-auditor/main/install.sh | bash
 ```
 
-Prefer to read before piping a stranger's installer into your shell (you're here
-for a reason)? Clone and run it locally:
+不想把陌生人的安装脚本直接管道喂给你的 shell（你会用这个工具，正是出于这个原因）？那就先克隆下来、读过再本地运行：
 
 ```bash
 git clone https://github.com/your-org/skill-auditor && cd skill-auditor && ./install.sh
 ```
 
-The installer copies the skill into `~/.claude/skills` and `~/.codex/skills`
-(and `~/.cursor/skills` if present). Requires Python 3.8+ at scan time; PyYAML is
-optional (a built-in fallback parser is used if it's absent).
+安装脚本会把这个 skill 复制到 `~/.claude/skills` 和 `~/.codex/skills`（如果检测到 Cursor，也会复制到 `~/.cursor/skills`）。扫描时需要 Python 3.8+；PyYAML 为可选项（缺失时会自动使用内置的回退解析器）。
 
 ---
 
-## Usage
+## 使用
 
-Run the scanner against a local directory or a GitHub URL:
+针对本地目录或 GitHub URL 运行扫描器：
 
 ```bash
-python scripts/scan.py ./path/to/skill --format text                 # local directory
+python scripts/scan.py ./path/to/skill --format text                 # 本地目录
 python scripts/scan.py https://github.com/someone/skill --format text   # GitHub URL
 ```
 
-Add `--format json` for machine-readable output. Exit code is the verdict:
-`0` safe · `1` review · `2` do-not-install · `3` scan error.
+加上 `--format json` 可输出机器可读格式。退出码即为结论：`0` 安全 · `1` 需复核 · `2` 不要安装 · `3` 扫描出错。
 
-Through your agent it's even simpler — just ask *"is this skill safe to
-install?"* and the skill triggers automatically, adding the semantic layer below.
+通过你的 agent 使用则更简单——只需问一句*「这个 skill 装着安全吗？」*，skill 会自动触发，并叠加下文所说的语义层。
 
 ---
 
-## How it works
+## 原理
 
-Two layers, one report, one verdict:
+两个层级，汇成一份报告、一个结论：
 
-- **Deterministic layer** — [`scripts/scan.py`](scripts/scan.py) loads every rule
-  from [`rules/*.yaml`](rules/) and pattern-matches each `SKILL.md`, reference,
-  and script. Fast, repeatable, exact `file:line` hits.
-- **Semantic layer** — [`SKILL.md`](SKILL.md) drives the agent to read the
-  pre-filtered spots (`~semantic`) and judge *intent*: disguised purpose, social
-  engineering aimed at the agent, trigger-gated payloads that regex alone can't
-  settle.
+- **确定性层** —— `scripts/scan.py` 从 `rules/*.yaml` 加载所有规则，对每个 `SKILL.md`、参考文档和脚本做模式匹配。快速、可复现、精确定位到 `file:line`。
+- **语义层** —— `SKILL.md` 驱动 agent 去阅读被预筛出的可疑位置（标记为 `~semantic`），并判断其*意图*：伪装的真实用途、针对 agent 的社会工程、以及单凭正则无法定论的触发式载荷。
 
-Because `SKILL.md` + YAML frontmatter is the shared format across **Claude
-Code**, **Codex**, and **Cursor**, one auditor covers all three.
+由于 `SKILL.md` + YAML frontmatter 是 **Claude Code**、**Codex**、**Cursor** 三者共用的格式，一个审计器即可覆盖全部三家。
 
 ---
 
-## What it detects
+## 检测内容
 
-| Category | Severity | What it catches |
+| 类别 | 严重级别 | 检测内容 |
 | --- | --- | --- |
-| `data-exfiltration` | CRITICAL | Reads local data and ships it to an external server |
-| `credential-read` | CRITICAL | Reads `~/.ssh`, `~/.aws`, `.env`, tokens, cloud creds |
-| `dangerous-shell` | CRITICAL | Destructive, persistent, or pipe-remote-to-shell commands |
-| `prompt-injection` | CRITICAL | Overrides, hijacks, or hides things from the agent |
-| `description-mismatch` | WARNING | Stated purpose ≠ what the body actually does |
-| `obfuscation` | WARNING | Base64/hex payloads decoded and piped into a shell, `eval` of assembled strings |
-| `logic-bomb` | WARNING | Payload gated behind a date / host / repo / run-count trigger |
+| `data-exfiltration`（数据外泄） | CRITICAL | 读取本地数据并发送到外部服务器 |
+| `credential-read`（凭据读取） | CRITICAL | 读取 `~/.ssh`、`~/.aws`、`.env`、令牌、云凭据 |
+| `dangerous-shell`（危险命令） | CRITICAL | 破坏性、驻留性，或把远程内容直接管道进 shell 的命令 |
+| `prompt-injection`（提示注入） | CRITICAL | 覆盖、劫持 agent，或对其隐瞒信息 |
+| `description-mismatch`（描述不符） | WARNING | 声称的用途 ≠ 正文实际所做的事 |
+| `obfuscation`（混淆） | WARNING | 把 Base64/十六进制载荷解码后管道进 shell，或 `eval` 拼接出来的字符串 |
+| `logic-bomb`（逻辑炸弹） | WARNING | 载荷被日期 / 主机 / 仓库 / 运行次数等触发条件所门控 |
 
-Severity drives the verdict: any **CRITICAL** → DO NOT INSTALL · any **WARNING**
-→ REVIEW BEFORE INSTALL · only **INFO** → SAFE TO INSTALL.
-
----
-
-## Contributing
-
-The most valuable contribution is a **new attack pattern**, and it's pure data —
-no code change needed:
-
-1. Add a rule to the right file in [`rules/`](rules/) (`id`, `category`,
-   `severity`, `layer`, `pattern`, `rationale`, `guidance`).
-2. Regenerate the catalog: `python scripts/render_catalog.py`
-   ([`references/risk-patterns.md`](references/risk-patterns.md) is generated, never
-   hand-edited, so it can't drift from what runs).
-3. Confirm it fires on `examples/malicious-skill/` and **not** on
-   `examples/clean-skill/`, then open a PR describing the real-world attack it
-   defends against.
-
-**Design rule:** a false positive costs a second look; a false negative costs a
-breach. When in doubt, catch it.
+严重级别决定结论：出现任何 **CRITICAL** → DO NOT INSTALL · 出现任何 **WARNING** → REVIEW BEFORE INSTALL · 仅有 **INFO** → SAFE TO INSTALL。
 
 ---
 
-## License
+## 参与贡献
 
-MIT — see [LICENSE](LICENSE).
+最有价值的贡献是一条**新的攻击模式**，而这纯粹是数据——无需改动任何代码：
+
+1. 在 `rules/` 下对应的文件里加一条规则（`id`、`category`、`severity`、`layer`、`pattern`、`rationale`、`guidance`）。
+2. 重新生成目录：`python scripts/render_catalog.py`（`references/risk-patterns.md` 是自动生成的，从不手工编辑，因此永远不会和实际运行的规则脱节）。
+3. 确认它会在 `examples/malicious-skill/` 上触发、而**不会**在 `examples/clean-skill/` 上触发，然后提交一个 PR，说明它所防御的真实攻击。
+
+**设计准则：** 一次误报只是让你多看一眼，一次漏报却可能酿成入侵。拿不准时，就抓出来。
+
+---
+
+## 许可证
+
+MIT —— 详见 [LICENSE](LICENSE)。
