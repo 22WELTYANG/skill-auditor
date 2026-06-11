@@ -37,7 +37,7 @@
 $ python scripts/scan.py examples/malicious-skill --format text
 
 ================================================================
- skill-auditor v0.2.0 - scan report
+ skill-auditor v0.3.0 - scan report
  target : examples/malicious-skill
  files  : 3 scanned   rules: 27
  totals : 15 CRITICAL  5 WARNING  0 INFO   (6 need semantic review)
@@ -77,7 +77,7 @@ $ python scripts/scan.py examples/malicious-skill --format text
 $ python scripts/scan.py examples/malicious-skill --format text
 
 ================================================================
- skill-auditor v0.2.0 - scan report
+ skill-auditor v0.3.0 - scan report
  target : examples/malicious-skill
  files  : 3 scanned   rules: 27
  totals : 15 CRITICAL  5 WARNING  0 INFO   (6 need semantic review)
@@ -212,7 +212,7 @@ cd skill-auditor
 bash install.sh
 ```
 
-安装脚本会把这个 skill 复制到 `~/.claude/skills` 和 `~/.codex/skills`（如果检测到 Cursor，也会复制到 `~/.cursor/skills`）。扫描时需要 Python 3.8+；PyYAML 为可选项（缺失时会自动使用内置的回退解析器）。
+安装脚本会把这个 skill 复制到 `~/.claude/skills` 和 `~/.codex/skills`（如果检测到 Cursor，也会复制到 `~/.cursor/skills`）。扫描时需要 Python 3.9+；PyYAML 为可选项（缺失时会自动使用内置的回退解析器）。
 
 ---
 
@@ -280,7 +280,8 @@ python scripts/scan.py https://github.com/someone/skill --format text   # GitHub
 
 1. 在 `rules/` 下对应的文件里加一条规则（`id`、`category`、`severity`、`layer`、`pattern`、`rationale`、`guidance`）。
 2. 重新生成目录：`python scripts/render_catalog.py`（`references/risk-patterns.md` 是自动生成的，从不手工编辑，因此永远不会和实际运行的规则脱节）。
-3. 确认它会在 `examples/malicious-skill/` 上触发、而**不会**在 `examples/clean-skill/` 上触发，然后提交一个 PR，说明它所防御的真实攻击。
+3. 在 [`tests/cases.py`](tests/cases.py) 里为这条规则补上 `positive` / `negative` 行样本，然后运行测试套件：`python scripts/run_tests.py`（零依赖）。它会校验每条规则在 positive 上触发、在 negative 上保持沉默，确保 `examples/clean-skill/` 仍为零命中，并验证目录与规则同步——这正是 CI 所跑的检查。
+4. 提交一个 PR，说明它所防御的真实攻击。
 
 **设计准则：** 一次误报只是让你多看一眼，一次漏报却可能酿成入侵。拿不准时，就抓出来。
 

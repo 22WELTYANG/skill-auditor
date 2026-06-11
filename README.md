@@ -43,7 +43,7 @@ first, then trust."*
 $ python scripts/scan.py examples/malicious-skill --format text
 
 ================================================================
- skill-auditor v0.2.0 - scan report
+ skill-auditor v0.3.0 - scan report
  target : examples/malicious-skill
  files  : 3 scanned   rules: 27
  totals : 15 CRITICAL  5 WARNING  0 INFO   (6 need semantic review)
@@ -84,7 +84,7 @@ INSTALL** — no false positives.
 $ python scripts/scan.py examples/malicious-skill --format text
 
 ================================================================
- skill-auditor v0.2.0 - scan report
+ skill-auditor v0.3.0 - scan report
  target : examples/malicious-skill
  files  : 3 scanned   rules: 27
  totals : 15 CRITICAL  5 WARNING  0 INFO   (6 need semantic review)
@@ -221,7 +221,7 @@ bash install.sh
 ```
 
 The installer copies the skill into `~/.claude/skills` and `~/.codex/skills`
-(and `~/.cursor/skills` if present). Requires Python 3.8+ at scan time; PyYAML is
+(and `~/.cursor/skills` if present). Requires Python 3.9+ at scan time; PyYAML is
 optional (a built-in fallback parser is used if it's absent).
 
 ---
@@ -262,15 +262,15 @@ Code**, **Codex**, and **Cursor**, one auditor covers all three.
 
 ## What it detects
 
-| Category | Severity | What it catches |
-| --- | --- | --- |
-| `data-exfiltration` | CRITICAL | Reads local data and ships it to an external server |
-| `credential-read` | CRITICAL | Reads `~/.ssh`, `~/.aws`, `.env`, tokens, cloud creds |
-| `dangerous-shell` | CRITICAL | Destructive, persistent, or pipe-remote-to-shell commands |
-| `prompt-injection` | CRITICAL | Overrides, hijacks, or hides things from the agent |
-| `description-mismatch` | WARNING | Stated purpose ≠ what the body actually does |
-| `obfuscation` | WARNING | Base64/hex payloads decoded and piped into a shell, `eval` of assembled strings |
-| `logic-bomb` | WARNING | Payload gated behind a date / host / repo / run-count trigger |
+| Category                 | Severity | What it catches                                                                  |
+| ------------------------ | -------- | -------------------------------------------------------------------------------- |
+| `data-exfiltration`    | CRITICAL | Reads local data and ships it to an external server                              |
+| `credential-read`      | CRITICAL | Reads `~/.ssh`, `~/.aws`, `.env`, tokens, cloud creds                      |
+| `dangerous-shell`      | CRITICAL | Destructive, persistent, or pipe-remote-to-shell commands                        |
+| `prompt-injection`     | CRITICAL | Overrides, hijacks, or hides things from the agent                               |
+| `description-mismatch` | WARNING  | Stated purpose ≠ what the body actually does                                    |
+| `obfuscation`          | WARNING  | Base64/hex payloads decoded and piped into a shell,`eval` of assembled strings |
+| `logic-bomb`           | WARNING  | Payload gated behind a date / host / repo / run-count trigger                    |
 
 Severity drives the verdict: any **CRITICAL** → DO NOT INSTALL · any **WARNING**
 → REVIEW BEFORE INSTALL · only **INFO** → SAFE TO INSTALL.
@@ -293,7 +293,6 @@ If this project helps you audit AI skills more safely, please consider giving it
 
 ---
 
-
 ## Contributing
 
 The most valuable contribution is a **new attack pattern**, and it's pure data —
@@ -304,9 +303,12 @@ no code change needed:
 2. Regenerate the catalog: `python scripts/render_catalog.py`
    ([`references/risk-patterns.md`](references/risk-patterns.md) is generated, never
    hand-edited, so it can't drift from what runs).
-3. Confirm it fires on `examples/malicious-skill/` and **not** on
-   `examples/clean-skill/`, then open a PR describing the real-world attack it
-   defends against.
+3. Add `positive` / `negative` line samples for the rule to
+   [`tests/cases.py`](tests/cases.py), then run the suite:
+   `python scripts/run_tests.py` (zero dependencies). It checks every rule fires
+   on its positives and stays quiet on its negatives, keeps `examples/clean-skill/`
+   at zero findings, and verifies the catalog is in sync — the same checks CI runs.
+4. Open a PR describing the real-world attack it defends against.
 
 **Design rule:** a false positive costs a second look; a false negative costs a
 breach. When in doubt, catch it.

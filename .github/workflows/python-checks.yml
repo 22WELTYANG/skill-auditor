@@ -9,24 +9,27 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Pin both ends of the supported range. No PyYAML is installed, so this
+        # also proves the zero-dependency fallback parsers work on each version.
+        python-version: [ "3.9", "3.12" ]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
 
-      - name: Check Python syntax
-        run: |
-          python -m compileall scripts
+      - name: Compile all sources
+        run: python -m compileall scripts tests
 
-      - name: Run clean fixture
-        run: |
-          python scripts/scan.py examples/clean-skill --format text
+      - name: Catalog is up to date with rules/
+        run: python scripts/render_catalog.py --check
 
-      - name: Run malicious fixture
-        run: |
-          python scripts/scan.py examples/malicious-skill --format text || true
+      - name: Regression suite (rules + fixtures + suppression)
+        run: python scripts/run_tests.py

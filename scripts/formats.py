@@ -196,7 +196,7 @@ def build_sarif(report: dict, rules: list[dict] | None = None) -> dict:
             "tool": {
                 "driver": {
                     "name": "skill-auditor",
-                    "informationUri": "https://github.com/your-org/skill-auditor",
+                    "informationUri": "https://github.com/22WELTYANG/skill-auditor",
                     "version": report["version"],
                     "rules": driver_rules,
                 },
