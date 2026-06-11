@@ -8,9 +8,8 @@ import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-for path in (REPO_ROOT / "src", REPO_ROOT / "tests"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
+sys.path.insert(0, str(REPO_ROOT / "tests"))
+sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from skill_auditor import cli, config as cfg, render_catalog  # noqa: E402
 from skill_auditor import rules_loader as rl  # noqa: E402
