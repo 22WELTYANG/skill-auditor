@@ -265,6 +265,14 @@ Severity drives the verdict: any **CRITICAL** → DO NOT INSTALL · any **WARNIN
 
 ---
 
+## ⭐ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=22WELTYANG/skill-auditor&type=Date)](https://www.star-history.com/#22WELTYANG/skill-auditor&Date)
+
+
+---
+
+
 ## Contributing
 
 The most valuable contribution is a **new attack pattern**, and it's pure data —
