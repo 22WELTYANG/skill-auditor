@@ -39,6 +39,12 @@ first, then trust."*
 
 ## Demo
 
+<!-- Enable once docs/demo.gif is recorded — see docs/README.md:
+<p align="center">
+  <img src="docs/demo.gif" alt="skill-auditor flagging a malicious skill, then passing a clean one" width="720">
+</p>
+-->
+
 ```text
 $ python scripts/scan.py examples/malicious-skill --format text
 
@@ -352,9 +358,11 @@ no code change needed:
 
 1. Add a rule to the right file in [`rules/`](rules/) (`id`, `category`,
    `severity`, `layer`, `pattern`, `rationale`, `guidance`).
-2. Regenerate the catalog: `python scripts/render_catalog.py`
-   ([`references/risk-patterns.md`](references/risk-patterns.md) is generated, never
-   hand-edited, so it can't drift from what runs).
+2. Regenerate the catalog: `python scripts/render_catalog.py`. This also
+   mirrors `rules/` into the packaged copy at `src/skill_auditor/rules/` —
+   the catalog ([`references/risk-patterns.md`](references/risk-patterns.md))
+   and the mirror are both generated, never hand-edited, so they can't
+   drift from what runs.
 3. Add `positive` / `negative` line samples for the rule to
    [`tests/cases.py`](tests/cases.py), then run the suite:
    `python scripts/run_tests.py` (zero dependencies). It checks every rule fires

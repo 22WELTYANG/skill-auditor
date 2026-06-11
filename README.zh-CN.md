@@ -33,6 +33,12 @@
 
 ## 演示
 
+<!-- 录制 docs/demo.gif 后启用——参见 docs/README.md：
+<p align="center">
+  <img src="docs/demo.gif" alt="skill-auditor 拦截恶意 skill、放行干净 skill 的演示" width="720">
+</p>
+-->
+
 ```text
 $ python scripts/scan.py examples/malicious-skill --format text
 
@@ -329,7 +335,7 @@ python scripts/scan.py ./path/to/skill  # 兼容旧入口
 最有价值的贡献是一条**新的攻击模式**，而这纯粹是数据——无需改动任何代码：
 
 1. 在 `rules/` 下对应的文件里加一条规则（`id`、`category`、`severity`、`layer`、`pattern`、`rationale`、`guidance`）。
-2. 重新生成目录：`python scripts/render_catalog.py`（`references/risk-patterns.md` 是自动生成的，从不手工编辑，因此永远不会和实际运行的规则脱节）。
+2. 重新生成目录：`python scripts/render_catalog.py`（它会同时把 `rules/` 镜像到包内的 `src/skill_auditor/rules/`；目录 `references/risk-patterns.md` 和包内镜像都是自动生成的，从不手工编辑，因此永远不会和实际运行的规则脱节）。
 3. 在 [`tests/cases.py`](tests/cases.py) 里为这条规则补上 `positive` / `negative` 行样本，然后运行测试套件：`python scripts/run_tests.py`（零依赖）。它会校验每条规则在 positive 上触发、在 negative 上保持沉默，确保 `examples/clean-skill/` 仍为零命中，并验证目录与规则同步——这正是 CI 所跑的检查。
 4. 提交一个 PR，说明它所防御的真实攻击。
 

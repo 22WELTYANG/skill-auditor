@@ -1,18 +1,25 @@
 # docs/
 
-Place demo assets here. The main `README.md` references `docs/demo.png`.
+Demo assets for the main README live here.
 
-To capture the screenshot used in the README:
+## Regenerating `demo.gif`
+
+The README's Demo section embeds `docs/demo.gif`: a short recording of the
+scanner auditing `examples/malicious-skill` (→ **DO NOT INSTALL**) and then
+`examples/clean-skill` (→ **SAFE TO INSTALL**).
+
+With [asciinema](https://asciinema.org) and
+[agg](https://github.com/asciinema/agg) installed (Linux, macOS, or WSL):
 
 ```bash
-python scripts/scan.py examples/malicious-skill --format text
+bash docs/record-demo.sh
 ```
 
-Screenshot the output (terminal with a UTF-8-capable font) and save it as
-`docs/demo.png`. For an animated demo:
+Keep the GIF under ~1.5 MB so clones stay light.
 
-```bash
-asciinema rec docs/demo.cast \
-  -c "python scripts/scan.py examples/malicious-skill --format text"
-# then convert to GIF with agg, or embed the asciinema player badge.
-```
+On Windows without WSL, a screen recorder such as
+[ScreenToGif](https://www.screentogif.com/) pointed at Windows Terminal works
+as a fallback — record the same two commands the script runs.
+
+Once the GIF exists, enable the commented-out `<img>` block at the top of the
+Demo section in both `README.md` and `README.zh-CN.md`.
