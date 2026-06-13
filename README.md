@@ -21,6 +21,10 @@ English | [简体中文](./README.zh-CN.md)
   <a href="https://github.com/22WELTYANG/skill-auditor/actions/workflows/python-checks.yml">
     <img src="https://github.com/22WELTYANG/skill-auditor/actions/workflows/python-checks.yml/badge.svg" alt="Python checks">
   </a>
+  <a href="https://github.com/22WELTYANG/skill-auditor/actions/workflows/skill-auditor.yml">
+    <img src="https://github.com/22WELTYANG/skill-auditor/actions/workflows/skill-auditor.yml/badge.svg" alt="Skill security">
+  </a>
+  <img src="https://img.shields.io/badge/scanned%20by-skill--auditor-blue" alt="scanned by skill-auditor">
 </p>
 
 ---
@@ -292,6 +296,68 @@ use the complete result set.
 
 Through your agent it's even simpler — just ask *"is this skill safe to
 install?"* and the skill triggers automatically, adding the semantic layer below.
+
+---
+
+## CI, baselines, and audit locks
+
+Use the repository Action with read-only source permissions and Code Scanning:
+
+```yaml
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+steps:
+  - uses: actions/checkout@v6
+    with:
+      fetch-depth: 0
+  - uses: 22WELTYANG/skill-auditor@v0.8.0
+    with:
+      path: .
+      recursive: "true"
+      baseline: auto
+```
+
+The Action uploads SARIF before applying the scan exit-code gate. On pull
+requests, suppression config and automatic baseline data are read from the base
+commit, never from the untrusted PR head. `@v0` is the rolling compatible tag;
+pin an exact release for reproducible audits.
+
+```bash
+skill-auditor scan . --recursive --source-root . --format sarif --output audit.sarif
+skill-auditor baseline create . --recursive --output trusted-baseline.json
+skill-auditor scan . --recursive --baseline trusted-baseline.json
+skill-auditor lock create ./skills/demo --output skill-auditor.lock
+skill-auditor lock verify ./skills/demo --lock skill-auditor.lock
+```
+
+Optional semantic review supports OpenAI-compatible APIs and Ollama:
+
+```bash
+OPENAI_API_KEY=... skill-auditor ./skill --semantic api --semantic-model gpt-4.1-mini
+skill-auditor ./skill --semantic local --semantic-model qwen2.5:7b
+```
+
+Only high-confidence benign decisions can resolve semantic pre-filters.
+Deterministic findings, uncertain decisions, invalid responses, and provider
+failures retain their original gate behavior.
+
+For pre-commit:
+
+```yaml
+repos:
+  - repo: https://github.com/22WELTYANG/skill-auditor
+    rev: v0.8.0
+    hooks:
+      - id: skill-auditor
+```
+
+[![scanned by skill-auditor](https://img.shields.io/badge/scanned%20by-skill--auditor-blue)](https://github.com/22WELTYANG/skill-auditor)
+
+See [CI and trust infrastructure](docs/ci-ecosystem.md) and the
+[public corpus methodology](docs/research-methodology.md).
 
 ---
 

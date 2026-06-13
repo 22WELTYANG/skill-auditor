@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -15,7 +16,18 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import __version__
-from . import analyzers, archives, config as cfg, formats, paths
+from . import (
+    analyzers,
+    archives,
+    baseline as baseline_mod,
+    cache as cache_mod,
+    config as cfg,
+    formats,
+    identity,
+    integrity,
+    paths,
+    semantic,
+)
 from .rules_loader import (
     CRITICAL,
     INFO,
@@ -31,7 +43,7 @@ TEXT_SUFFIXES = {
     ".md", ".markdown", ".txt", ".sh", ".bash", ".zsh", ".fish",
     ".py", ".js", ".mjs", ".cjs", ".ts", ".rb", ".pl", ".php",
     ".yaml", ".yml", ".json", ".toml", ".cfg", ".ini", ".env",
-    ".ps1", ".bat", ".cmd", "",
+    ".ps1", ".bat", ".cmd", ".mdc", "",
 }
 SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", ".idea"}
 MAX_BYTES = 1_000_000
@@ -529,6 +541,9 @@ def build_report(
     fail_on: str,
     config_path: str | Path | None = None,
     archive_target: bool = False,
+    source_root: str | Path | None = None,
+    baseline_data: dict | None = None,
+    semantic_options: semantic.Options | None = None,
 ) -> dict:
     try:
         trusted_config = cfg.load_config(config_path, root)
@@ -548,10 +563,12 @@ def build_report(
             item for item in scanned if item.lower().endswith("skill.md")
         )
     else:
-        skill_file, skill_text, _ = validate_skill_directory(root)
+        skill_file, skill_text, frontmatter = validate_skill_directory(root)
         ignored_target_config = cfg.target_config_files(root)
         scanned, findings, diagnostics, line_index = scan_repo(root, rules, trusted_config)
         skill_location = _relative(skill_file, root)
+    if archive_target:
+        frontmatter, _ = parse_frontmatter(skill_text)
     mismatch_rule = next(
         (rule for rule in rules if rule.get("check") == "description-mismatch"),
         None,
@@ -564,7 +581,31 @@ def build_report(
     normalized = normalize(findings)
     active = [finding for finding in normalized if not finding["suppressed"]]
     suppressed = [finding for finding in normalized if finding["suppressed"]]
-    summary = _summary(active, suppressed)
+    source = _validate_source_root(root, source_root)
+    identity.enrich_findings(normalized, root, source)
+    semantic_options = semantic_options or semantic.Options()
+    if semantic_options.mode == "off":
+        for finding in active:
+            finding["semantic_resolved"] = False
+        semantic_reviews: list[dict] = []
+    else:
+        semantic_reviews = semantic.review_findings(
+            active,
+            description=frontmatter.get("description", ""),
+            options=semantic_options,
+        )
+    baseline_mod.classify(active, baseline_data)
+    effective = [
+        finding for finding in active
+        if not finding.get("semantic_resolved", False)
+    ]
+    gated = [
+        finding for finding in effective
+        if baseline_data is None or finding.get("new", True)
+    ]
+    detected_summary = _summary(active, suppressed)
+    summary = _summary(effective, suppressed)
+    gate_summary = _summary(gated, suppressed)
     floor = SEVERITY_RANK[min_severity]
     displayed = [
         finding for finding in active
@@ -574,7 +615,12 @@ def build_report(
     categories: dict[str, int] = {}
     for finding in active:
         categories[finding["category"]] = categories.get(finding["category"], 0) + 1
-    verdict_code, verdict_label = verdict_for(summary)
+    full_verdict_code, full_verdict_label = verdict_for(summary)
+    verdict_code, verdict_label = verdict_for(gate_summary)
+    content_digest = identity.content_hash(root)
+    catalog_digest = identity.rules_digest(rules)
+    automation_id = _automation_id(root, source)
+    skill_root = _source_relative(root, source)
     return {
         "tool": "skill-auditor",
         "version": VERSION,
@@ -583,18 +629,342 @@ def build_report(
         "fail_on": fail_on,
         "min_severity": min_severity,
         "config_source": trusted_config.source,
+        "source_root": str(source) if source else None,
+        "skill_root": skill_root,
+        "automation_id": automation_id,
+        "content_hash": content_digest,
+        "rules_digest": catalog_digest,
         "ignored_target_config": ignored_target_config,
         "scanned_files": sorted(set(scanned)),
         "scan_diagnostics": diagnostics,
+        "detected_summary": detected_summary,
         "summary": summary,
+        "gate_summary": gate_summary,
         "display_summary": display_summary,
         "categories": categories,
+        "semantic": {
+            "mode": semantic_options.mode,
+            "model": semantic_options.model or None,
+            "prompt_version": semantic.PROMPT_VERSION,
+            "min_confidence": semantic_options.min_confidence,
+        },
+        "semantic_review": semantic_reviews,
+        "baseline": {
+            "enabled": baseline_data is not None,
+            "source": (baseline_data or {}).get("source"),
+            "rules_digest": (baseline_data or {}).get("rules_digest"),
+            "rules_match": (
+                baseline_data is None
+                or baseline_data.get("rules_digest") == catalog_digest
+            ),
+        },
+        "all_findings": active,
         "findings": displayed,
         "suppressed": suppressed,
+        "full_verdict": full_verdict_code,
+        "full_verdict_label": full_verdict_label,
         "verdict": verdict_code,
         "verdict_label": verdict_label,
-        "exit_code": exit_code_for(summary, fail_on),
+        "exit_code": exit_code_for(gate_summary, fail_on),
     }
+
+
+def _validate_source_root(root: Path, source_root: str | Path | None) -> Path | None:
+    if source_root is None:
+        return root.parent.resolve(strict=True) if root.is_file() else root.resolve(strict=True)
+    candidate = Path(source_root).expanduser()
+    try:
+        resolved = candidate.resolve(strict=True)
+        physical = root.resolve(strict=True)
+    except OSError as exc:
+        raise ScanError(f"cannot resolve source root: {exc}") from exc
+    if not resolved.is_dir() or not _is_within(physical, resolved):
+        raise ScanError("source root must be a directory containing the scan target")
+    return resolved
+
+
+def _automation_id(root: Path, source_root: Path | None) -> str:
+    return f"skill-auditor/{_source_relative(root, source_root)}"
+
+
+def _source_relative(root: Path, source_root: Path | None) -> str:
+    try:
+        relative = root.resolve(strict=True).relative_to(source_root or root)
+        value = str(relative).replace("\\", "/") or "."
+    except (OSError, ValueError):
+        value = root.name
+    return value
+
+
+def discover_skill_roots(root: Path) -> list[Path]:
+    discovered: list[Path] = []
+
+    def walk(directory: Path) -> None:
+        try:
+            entries = sorted(os.scandir(directory), key=lambda item: item.name.lower())
+        except OSError as exc:
+            raise ScanError(f"cannot read recursive scan directory: {exc}") from exc
+        skill_files = [
+            entry for entry in entries
+            if entry.name.lower() == "skill.md"
+            and entry.is_file(follow_symlinks=False)
+            and not entry.is_symlink()
+        ]
+        if len(skill_files) == 1:
+            discovered.append(directory)
+        for entry in entries:
+            if entry.name in SKIP_DIRS or entry.name == ".skill-auditor-cache":
+                continue
+            path = Path(entry.path)
+            if entry.is_symlink() or _is_junction(path):
+                continue
+            if entry.is_dir(follow_symlinks=False):
+                walk(path)
+
+    walk(root)
+    return discovered
+
+
+def build_recursive_report(
+    target: str,
+    root: Path,
+    rules: list[dict],
+    *,
+    min_severity: str,
+    fail_on: str,
+    config_path: str | Path | None = None,
+    source_root: str | Path | None = None,
+    baseline_data: dict | None = None,
+    semantic_options: semantic.Options | None = None,
+    cache_directory: str | Path | None = None,
+    use_cache: bool = False,
+) -> dict:
+    source = _validate_source_root(root, source_root)
+    if config_path is not None:
+        try:
+            cfg.load_config(config_path, root)
+        except cfg.ConfigError as exc:
+            raise ScanError(str(exc)) from exc
+    resolved_cache = cache_directory
+    if use_cache:
+        resolved_cache = cache_mod.validate_directory(
+            Path(cache_directory) if cache_directory else cache_mod.default_directory(),
+            root,
+        )
+    skill_roots = discover_skill_roots(root)
+    if not skill_roots:
+        raise ScanError("recursive scan found no valid SKILL.md roots")
+    reports = [
+        build_report_cached(
+            str(skill_root.relative_to(root)).replace("\\", "/") or ".",
+            skill_root,
+            rules,
+            min_severity=min_severity,
+            fail_on=fail_on,
+            config_path=config_path,
+            source_root=source,
+            semantic_options=semantic_options,
+            cache_directory=resolved_cache,
+            use_cache=use_cache,
+        )
+        for skill_root in skill_roots
+    ]
+    all_findings = [
+        item for report in reports for item in report["all_findings"]
+    ]
+    if baseline_data is not None:
+        baseline_mod.classify(all_findings, baseline_data)
+        for report in reports:
+            _refresh_gate(report, fail_on, baseline_enabled=True)
+    all_findings = [
+        item for report in reports for item in report["all_findings"]
+    ]
+    displayed = [item for report in reports for item in report["findings"]]
+    suppressed = [item for report in reports for item in report["suppressed"]]
+    effective = [item for item in all_findings if not item.get("semantic_resolved")]
+    gated = [
+        item for item in effective
+        if baseline_data is None or item.get("new", True)
+    ]
+    summary = _summary(effective, suppressed)
+    gate_summary = _summary(gated, suppressed)
+    detected_summary = _summary(all_findings, suppressed)
+    verdict_code, verdict_label = verdict_for(gate_summary)
+    full_code, full_label = verdict_for(summary)
+    return {
+        "tool": "skill-auditor",
+        "version": VERSION,
+        "target": target,
+        "recursive": True,
+        "source_root": str(source),
+        "rules_loaded": len(rules),
+        "rules_digest": identity.rules_digest(rules),
+        "content_hash": identity.aggregate_content_hash(reports),
+        "fail_on": fail_on,
+        "min_severity": min_severity,
+        "reports": reports,
+        "scanned_files": sorted({
+            (
+                str(Path(report["skill_root"]) / item).replace("\\", "/")
+                if report["skill_root"] != "."
+                else item
+            )
+            for report in reports
+            for item in report["scanned_files"]
+        }),
+        "scan_diagnostics": [
+            item for report in reports for item in report["scan_diagnostics"]
+        ],
+        "detected_summary": detected_summary,
+        "summary": summary,
+        "gate_summary": gate_summary,
+        "display_summary": _summary(displayed, suppressed),
+        "categories": _categories(effective),
+        "all_findings": all_findings,
+        "findings": displayed,
+        "suppressed": suppressed,
+        "full_verdict": full_code,
+        "full_verdict_label": full_label,
+        "verdict": verdict_code,
+        "verdict_label": verdict_label,
+        "exit_code": exit_code_for(gate_summary, fail_on),
+        "baseline": {
+            "enabled": baseline_data is not None,
+            "source": (baseline_data or {}).get("source"),
+            "rules_digest": (baseline_data or {}).get("rules_digest"),
+            "rules_match": (
+                baseline_data is None
+                or baseline_data.get("rules_digest") == identity.rules_digest(rules)
+            ),
+        },
+    }
+
+
+def build_report_cached(
+    target: str,
+    root: Path,
+    rules: list[dict],
+    *,
+    min_severity: str,
+    fail_on: str,
+    config_path: str | Path | None = None,
+    archive_target: bool = False,
+    source_root: str | Path | None = None,
+    baseline_data: dict | None = None,
+    semantic_options: semantic.Options | None = None,
+    cache_directory: str | Path | None = None,
+    use_cache: bool = True,
+) -> dict:
+    semantic_options = semantic_options or semantic.Options()
+    if not use_cache:
+        return build_report(
+            target,
+            root,
+            rules,
+            min_severity=min_severity,
+            fail_on=fail_on,
+            config_path=config_path,
+            archive_target=archive_target,
+            source_root=source_root,
+            baseline_data=baseline_data,
+            semantic_options=semantic_options,
+        )
+    try:
+        trusted = cfg.load_config(config_path, root)
+    except cfg.ConfigError as exc:
+        raise ScanError(str(exc)) from exc
+    source = _validate_source_root(root, source_root)
+    directory = cache_mod.validate_directory(
+        Path(cache_directory) if cache_directory else cache_mod.default_directory(),
+        root,
+    )
+    config_digest = ""
+    if trusted.source:
+        try:
+            config_digest = hashlib.sha256(
+                Path(trusted.source).read_bytes()
+            ).hexdigest()
+        except OSError as exc:
+            raise ScanError(f"cannot hash trusted config: {exc}") from exc
+    cache_key = cache_mod.key({
+        "schema": 1,
+        "tool_version": VERSION,
+        "target": str(root.resolve(strict=True)),
+        "content_hash": identity.content_hash(root),
+        "rules_digest": identity.rules_digest(rules),
+        "config_digest": config_digest,
+        "source_root": str(source),
+        "archive_target": archive_target,
+        "min_severity": min_severity,
+        "fail_on": fail_on,
+        "semantic": {
+            "mode": semantic_options.mode,
+            "model": semantic_options.model,
+            "base_url": semantic_options.base_url,
+            "timeout": semantic_options.timeout,
+            "min_confidence": semantic_options.min_confidence,
+            "prompt_version": semantic.PROMPT_VERSION,
+        },
+    })
+    report = cache_mod.load(directory, cache_key)
+    cache_hit = report is not None
+    if report is None:
+        report = build_report(
+            target,
+            root,
+            rules,
+            min_severity=min_severity,
+            fail_on=fail_on,
+            config_path=config_path,
+            archive_target=archive_target,
+            source_root=source,
+            baseline_data=None,
+            semantic_options=semantic_options,
+        )
+        cache_mod.store(directory, cache_key, report)
+    report["cache"] = {
+        "enabled": True,
+        "hit": cache_hit,
+        "key": cache_key,
+        "directory": str(directory),
+    }
+    if baseline_data is not None:
+        baseline_mod.classify(report["all_findings"], baseline_data)
+        _refresh_gate(report, fail_on, baseline_enabled=True)
+        report["baseline"] = {
+            "enabled": True,
+            "source": baseline_data.get("source"),
+            "rules_digest": baseline_data.get("rules_digest"),
+            "rules_match": baseline_data.get("rules_digest") == report["rules_digest"],
+        }
+    return report
+
+
+def _refresh_gate(report: dict, fail_on: str, *, baseline_enabled: bool) -> None:
+    effective = [
+        item for item in report.get("all_findings", report["findings"])
+        if not item.get("semantic_resolved")
+    ]
+    gated = [
+        item for item in effective
+        if not baseline_enabled or item.get("new", True)
+    ]
+    report["summary"] = _summary(effective, report["suppressed"])
+    report["gate_summary"] = _summary(gated, report["suppressed"])
+    report["full_verdict"], report["full_verdict_label"] = verdict_for(
+        report["summary"]
+    )
+    report["verdict"], report["verdict_label"] = verdict_for(
+        report["gate_summary"]
+    )
+    report["exit_code"] = exit_code_for(report["gate_summary"], fail_on)
+
+
+def _categories(findings: list[dict]) -> dict[str, int]:
+    output: dict[str, int] = {}
+    for finding in findings:
+        output[finding["category"]] = output.get(finding["category"], 0) + 1
+    return output
 
 
 def render_report(report: dict, output_format: str, rules: list[dict], *, verbose: bool) -> str:
@@ -610,7 +980,7 @@ def render_report(report: dict, output_format: str, rules: list[dict], *, verbos
 
 
 def _build_for_resolved(args, rules: list[dict], resolved: ResolvedTarget) -> dict:
-    return build_report(
+    return build_report_cached(
         args.target,
         resolved.path,
         rules,
@@ -618,6 +988,11 @@ def _build_for_resolved(args, rules: list[dict], resolved: ResolvedTarget) -> di
         fail_on=args.fail_on,
         config_path=args.config,
         archive_target=resolved.archive,
+        source_root=args.source_root,
+        baseline_data=getattr(args, "_baseline_data", None),
+        semantic_options=_semantic_options(args),
+        cache_directory=args.cache_dir,
+        use_cache=not args.no_cache,
     )
 
 
@@ -626,11 +1001,113 @@ def cmd_scan(args, rules: list[dict]) -> int:
         return _scan_all(args, rules)
     resolved: ResolvedTarget | None = None
     try:
+        args._baseline_data = (
+            baseline_mod.load(args.baseline) if args.baseline else None
+        )
         resolved = resolve_target(args.target)
-        report = _build_for_resolved(args, rules, resolved)
-        print(render_report(report, args.format, rules, verbose=args.verbose))
+        if args.recursive:
+            if resolved.archive:
+                raise ScanError("--recursive requires a directory target")
+            report = build_recursive_report(
+                args.target,
+                resolved.path,
+                rules,
+                min_severity=args.min_severity,
+                fail_on=args.fail_on,
+                config_path=args.config,
+                source_root=args.source_root,
+                baseline_data=args._baseline_data,
+                semantic_options=_semantic_options(args),
+                cache_directory=args.cache_dir,
+                use_cache=not args.no_cache,
+            )
+        else:
+            report = _build_for_resolved(args, rules, resolved)
+        rendered = render_report(report, args.format, rules, verbose=args.verbose)
+        _emit_output(rendered, args.output)
         return report["exit_code"]
-    except ScanError as exc:
+    except (
+        ScanError,
+        baseline_mod.BaselineError,
+        cache_mod.CacheError,
+        semantic.SemanticError,
+    ) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 3
+    finally:
+        if resolved and resolved.temporary:
+            shutil.rmtree(resolved.temporary, ignore_errors=True)
+
+
+def _build_command_report(args, rules: list[dict], resolved: ResolvedTarget) -> dict:
+    args._baseline_data = None
+    if args.recursive:
+        if resolved.archive:
+            raise ScanError("--recursive requires a directory target")
+        return build_recursive_report(
+            args.target,
+            resolved.path,
+            rules,
+            min_severity=args.min_severity,
+            fail_on=args.fail_on,
+            config_path=args.config,
+            source_root=args.source_root,
+            semantic_options=_semantic_options(args),
+            cache_directory=args.cache_dir,
+            use_cache=not args.no_cache,
+        )
+    return _build_for_resolved(args, rules, resolved)
+
+
+def cmd_baseline(args, rules: list[dict]) -> int:
+    if not args.output:
+        print("error: baseline create requires --output", file=sys.stderr)
+        return 3
+    resolved: ResolvedTarget | None = None
+    try:
+        resolved = resolve_target(args.target)
+        report = _build_command_report(args, rules, resolved)
+        integrity.write(args.output, baseline_mod.build(report))
+        print(f"wrote baseline: {Path(args.output).expanduser()}")
+        return 0
+    except (
+        ScanError,
+        baseline_mod.BaselineError,
+        cache_mod.CacheError,
+        integrity.LockError,
+        semantic.SemanticError,
+    ) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 3
+    finally:
+        if resolved and resolved.temporary:
+            shutil.rmtree(resolved.temporary, ignore_errors=True)
+
+
+def cmd_lock(args, rules: list[dict]) -> int:
+    resolved: ResolvedTarget | None = None
+    try:
+        resolved = resolve_target(args.target)
+        report = _build_command_report(args, rules, resolved)
+        if args.lock_command == "create":
+            if not args.output:
+                raise ScanError("lock create requires --output")
+            integrity.write(args.output, integrity.build(report))
+            print(f"wrote lockfile: {Path(args.output).expanduser()}")
+            return report["exit_code"]
+        lock = integrity.load(args.lock)
+        changed = integrity.differences(report, lock)
+        if changed:
+            print("lock verification failed: " + ", ".join(changed), file=sys.stderr)
+            return 1
+        print("lock verification passed")
+        return 0
+    except (
+        ScanError,
+        cache_mod.CacheError,
+        integrity.LockError,
+        semantic.SemanticError,
+    ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 3
     finally:
@@ -655,21 +1132,23 @@ def _scan_all(args, rules: list[dict]) -> int:
         except (ScanError, OSError) as exc:
             errors.append({"target": str(skill), "error": str(exc), "exit_code": 3})
     if args.format == "json":
-        print(json.dumps({
+        rendered = json.dumps({
             "tool": "skill-auditor",
             "version": VERSION,
             "scanned": len(reports),
             "reports": reports,
             "errors": errors,
-        }, indent=2, ensure_ascii=False))
+        }, indent=2, ensure_ascii=False)
     elif args.format == "sarif":
         merged = {
             "version": VERSION,
             "findings": [finding for report in reports for finding in report["findings"]],
+            "reports": reports,
         }
-        print(formats.render_sarif(merged, rules))
+        rendered = formats.render_sarif(merged, rules)
     else:
-        print(_summary_table(reports, errors))
+        rendered = _summary_table(reports, errors)
+    _emit_output(rendered, args.output)
     if errors:
         return 3
     return max((report["exit_code"] for report in reports), default=0)
@@ -801,6 +1280,49 @@ def _severity(value: str) -> str:
     return normalized
 
 
+def _confidence(value: str) -> float:
+    try:
+        result = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("expected a number between 0 and 1") from exc
+    if not 0 <= result <= 1:
+        raise argparse.ArgumentTypeError("expected a number between 0 and 1")
+    return result
+
+
+def _semantic_options(args) -> semantic.Options:
+    return semantic.Options(
+        mode=getattr(args, "semantic", "off"),
+        model=getattr(args, "semantic_model", "") or "",
+        base_url=getattr(args, "semantic_base_url", "") or "",
+        timeout=getattr(args, "semantic_timeout", 20.0),
+        min_confidence=getattr(args, "semantic_min_confidence", 0.90),
+    )
+
+
+def _emit_output(content: str, output: str | None) -> None:
+    if not output:
+        print(content)
+        return
+    destination = Path(output).expanduser()
+    try:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        temporary = destination.with_name(
+            f".{destination.name}.{uuid.uuid4().hex}.tmp"
+        )
+        with temporary.open("w", encoding="utf-8", newline="\n") as handle:
+            handle.write(content)
+            if not content.endswith("\n"):
+                handle.write("\n")
+        os.replace(temporary, destination)
+    except OSError as exc:
+        try:
+            temporary.unlink(missing_ok=True)
+        except (OSError, UnboundLocalError):
+            pass
+        raise ScanError(f"cannot write output file: {exc}") from exc
+
+
 def _add_common(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--format",
@@ -820,6 +1342,24 @@ def _add_common(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument("--rules-dir", default=None)
     parser.add_argument("--config", help="trusted suppression config outside the target")
+    parser.add_argument("--output", help="atomically write the selected format to a file")
+    parser.add_argument("--source-root", help="repository root used for artifact paths")
+    parser.add_argument("--baseline", help="trusted baseline JSON used for diff-aware gating")
+    parser.add_argument("--cache-dir", help="trusted cache directory outside the target")
+    parser.add_argument("--no-cache", action="store_true")
+    parser.add_argument(
+        "--semantic",
+        choices=["off", "api", "local"],
+        default="off",
+    )
+    parser.add_argument("--semantic-model")
+    parser.add_argument("--semantic-base-url")
+    parser.add_argument("--semantic-timeout", type=float, default=20.0)
+    parser.add_argument(
+        "--semantic-min-confidence",
+        type=_confidence,
+        default=0.90,
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
 
 
@@ -833,12 +1373,30 @@ def build_parser() -> argparse.ArgumentParser:
     scan_parser = commands.add_parser("scan")
     scan_parser.add_argument("target", nargs="?")
     scan_parser.add_argument("--all", action="store_true")
+    scan_parser.add_argument("--recursive", action="store_true")
     _add_common(scan_parser)
     install_parser = commands.add_parser("install")
     install_parser.add_argument("target")
     install_parser.add_argument("--force", action="store_true")
     install_parser.add_argument("--dry-run", action="store_true")
     _add_common(install_parser)
+    baseline_parser = commands.add_parser("baseline")
+    baseline_commands = baseline_parser.add_subparsers(dest="baseline_command")
+    baseline_create = baseline_commands.add_parser("create")
+    baseline_create.add_argument("target")
+    baseline_create.add_argument("--recursive", action="store_true")
+    _add_common(baseline_create)
+    lock_parser = commands.add_parser("lock")
+    lock_commands = lock_parser.add_subparsers(dest="lock_command")
+    lock_create = lock_commands.add_parser("create")
+    lock_create.add_argument("target")
+    lock_create.add_argument("--recursive", action="store_true")
+    _add_common(lock_create)
+    lock_verify = lock_commands.add_parser("verify")
+    lock_verify.add_argument("target")
+    lock_verify.add_argument("--lock", required=True)
+    lock_verify.add_argument("--recursive", action="store_true")
+    _add_common(lock_verify)
     return parser
 
 
@@ -847,7 +1405,9 @@ _FAIL_ON = {"critical": CRITICAL, "warning": WARNING, "info": INFO}
 
 def main(argv: list[str] | None = None) -> int:
     raw = list(sys.argv[1:] if argv is None else argv)
-    if raw and raw[0] not in {"scan", "install", "-h", "--help", "--version"}:
+    if raw and raw[0] not in {
+        "scan", "install", "baseline", "lock", "-h", "--help", "--version"
+    }:
         raw = ["scan"] + raw
     parser = build_parser()
     args = parser.parse_args(raw)
@@ -870,4 +1430,16 @@ def main(argv: list[str] | None = None) -> int:
             print("error: scan needs a target, or --all", file=sys.stderr)
             return 3
         return cmd_scan(args, rules)
-    return cmd_install(args, rules)
+    if args.command == "install":
+        return cmd_install(args, rules)
+    if args.command == "baseline":
+        if args.baseline_command != "create":
+            print("error: baseline requires the create subcommand", file=sys.stderr)
+            return 3
+        return cmd_baseline(args, rules)
+    if args.command == "lock":
+        if args.lock_command not in {"create", "verify"}:
+            print("error: lock requires create or verify", file=sys.stderr)
+            return 3
+        return cmd_lock(args, rules)
+    return 3

@@ -12,7 +12,7 @@ description: >-
   returns a CRITICAL/WARNING/INFO report and a SAFE TO INSTALL / REVIEW BEFORE
   INSTALL / DO NOT INSTALL verdict.
   Trigger even if the user never says the words "skill-auditor".
-version: 0.4.0
+version: 0.8.0
 license: MIT
 compatible_with: [codex, claude-code, cursor]
 ---

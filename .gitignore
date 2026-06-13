@@ -13,6 +13,10 @@ dist/
 *.json.tmp
 mal.json
 cl.json
+corpus-manifest.json
+corpus-results.json
+corpus-statistics.json
+corpus-label-sample.json
 
 # OS / editor
 .DS_Store

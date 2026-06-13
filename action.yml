@@ -1,0 +1,88 @@
+name: skill-auditor
+description: Scan AI Agent Skills and publish GitHub Code Scanning annotations.
+author: 22WELTYANG
+branding:
+  icon: shield
+  color: red
+inputs:
+  path:
+    description: Repository-relative directory or Skill path to scan.
+    default: .
+  recursive:
+    description: Discover and scan every Skill root below path.
+    default: "true"
+  fail-on:
+    description: Minimum severity that fails the job.
+    default: critical
+  min-severity:
+    description: Minimum severity included in rendered reports.
+    default: info
+  config:
+    description: Trusted repository-relative config loaded from the base commit.
+    default: ""
+  baseline:
+    description: auto, none, or a repository-relative baseline from the base commit.
+    default: auto
+  upload-sarif:
+    description: Upload SARIF to GitHub Code Scanning.
+    default: "true"
+  upload-report:
+    description: Upload JSON and SARIF workflow artifacts.
+    default: "true"
+outputs:
+  verdict:
+    value: ${{ steps.scan.outputs.verdict }}
+  critical:
+    value: ${{ steps.scan.outputs.critical }}
+  warning:
+    value: ${{ steps.scan.outputs.warning }}
+  info:
+    value: ${{ steps.scan.outputs.info }}
+  exit-code:
+    value: ${{ steps.scan.outputs['exit-code'] }}
+  sarif-file:
+    value: ${{ steps.scan.outputs['sarif-file'] }}
+  json-file:
+    value: ${{ steps.scan.outputs['json-file'] }}
+  content-hash:
+    value: ${{ steps.scan.outputs['content-hash'] }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v6
+      with:
+        python-version: "3.12"
+    - name: Install skill-auditor
+      shell: bash
+      run: python -m pip install "$GITHUB_ACTION_PATH"
+    - name: Scan Skills
+      id: scan
+      shell: bash
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_RECURSIVE: ${{ inputs.recursive }}
+        INPUT_FAIL_ON: ${{ inputs['fail-on'] }}
+        INPUT_MIN_SEVERITY: ${{ inputs['min-severity'] }}
+        INPUT_CONFIG: ${{ inputs.config }}
+        INPUT_BASELINE: ${{ inputs.baseline }}
+      run: python -m skill_auditor.action_runner
+    - name: Upload SARIF
+      if: ${{ inputs['upload-sarif'] == 'true' && always() }}
+      continue-on-error: true
+      uses: github/codeql-action/upload-sarif@v4
+      with:
+        sarif_file: ${{ steps.scan.outputs['sarif-file'] }}
+        category: skill-auditor
+    - name: Upload audit reports
+      if: ${{ inputs['upload-report'] == 'true' && always() }}
+      continue-on-error: true
+      uses: actions/upload-artifact@v4
+      with:
+        name: skill-auditor-report
+        path: |
+          ${{ steps.scan.outputs['json-file'] }}
+          ${{ steps.scan.outputs['sarif-file'] }}
+    - name: Apply scan gate
+      if: ${{ always() }}
+      shell: bash
+      run: exit "${{ steps.scan.outputs['exit-code'] }}"

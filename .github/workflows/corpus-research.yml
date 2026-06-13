@@ -1,0 +1,48 @@
+name: Public Skill corpus research
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository-limit:
+        description: Maximum repositories to scan.
+        default: "500"
+  schedule:
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install scanner
+        run: python -m pip install .
+      - name: Discover fixed repository commits
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          LIMIT: ${{ inputs.repository-limit || '500' }}
+        run: python scripts/research_corpus.py discover --limit "$LIMIT" --output corpus-manifest.json
+      - name: Scan metadata-only corpus
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          LIMIT: ${{ inputs.repository-limit || '500' }}
+        run: python scripts/research_corpus.py scan --manifest corpus-manifest.json --limit "$LIMIT" --output corpus-results.json
+      - name: Build aggregate statistics and review sample
+        run: |
+          python scripts/research_corpus.py stats --results corpus-results.json --output corpus-statistics.json
+          python scripts/research_corpus.py sample --results corpus-results.json --size 1000 --double-review 0.20 --output corpus-label-sample.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: public-skill-corpus-${{ github.run_id }}
+          retention-days: 90
+          path: |
+            corpus-manifest.json
+            corpus-results.json
+            corpus-statistics.json
+            corpus-label-sample.json

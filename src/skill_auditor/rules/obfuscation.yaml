@@ -29,3 +29,24 @@ rules:
     pattern: '\b(?:xxd\s+-r|base32\s+(?:-d|--decode))\b[^\n]*\|\s*(?:sh|bash|python[0-9.]*|perl|node|eval)\b'
     rationale: Decodes hex or base32 data and pipes it into a shell, obfuscated execution.
     guidance: ''
+  - id: OBFUS-005
+    category: obfuscation
+    severity: WARNING
+    layer: deterministic
+    pattern: '[\u200B\u200C\u200D\u2060\uFEFF]'
+    rationale: Contains zero-width or word-joining Unicode format characters that can conceal changes from reviewers.
+    guidance: Inspect the exact Unicode code points and remove characters that are not required by the language.
+  - id: OBFUS-006
+    category: obfuscation
+    severity: CRITICAL
+    layer: deterministic
+    pattern: '[\u202A-\u202E\u2066-\u2069]'
+    rationale: Contains bidirectional text controls that can make source code display in a different order than it executes.
+    guidance: Review the raw code points and reject unexplained bidirectional controls in executable or instructional content.
+  - id: OBFUS-007
+    category: obfuscation
+    severity: WARNING
+    layer: semantic
+    check: unicode-homoglyph
+    rationale: Uses Greek or Cyrillic lookalikes inside a security-sensitive command, URL, credential, or agent instruction.
+    guidance: Compare the displayed text with its normalized skeleton and decide whether the mixed script is legitimate language or deliberate concealment.

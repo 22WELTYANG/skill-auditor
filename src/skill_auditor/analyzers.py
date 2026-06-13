@@ -20,6 +20,10 @@ def run_named_check(rule: dict, relative_path: str, text: str) -> list[tuple[int
         return _powershell_download_exec(text)
     if check == "mcp-config-write":
         return _mcp_config_write(text)
+    if check == "unicode-homoglyph":
+        return _unicode_homoglyph(text)
+    if check == "vscode-remote-vsix-install":
+        return _vscode_remote_vsix_install(text)
     return []
 
 
@@ -116,6 +120,44 @@ def _mcp_config_write(text: str) -> list[tuple[int, str]]:
     if not target.search(text) or not mutation.search(text):
         return []
     return _matching_lines(text, mutation)
+
+
+_CONFUSABLES = str.maketrans({
+    "а": "a", "е": "e", "о": "o", "р": "p", "с": "c", "х": "x",
+    "у": "y", "і": "i", "ј": "j", "ѕ": "s",
+    "Α": "A", "Β": "B", "Ε": "E", "Ζ": "Z", "Η": "H", "Ι": "I",
+    "Κ": "K", "Μ": "M", "Ν": "N", "Ο": "O", "Ρ": "P", "Τ": "T",
+    "Χ": "X", "Υ": "Y",
+    "α": "a", "β": "b", "ε": "e", "ι": "i", "κ": "k", "ν": "v",
+    "ο": "o", "ρ": "p", "τ": "t", "χ": "x", "υ": "y",
+})
+_SENSITIVE_SKELETON = re.compile(
+    r"(?i)(?:https?://|curl|wget|powershell|invoke|ignore|instruction|"
+    r"token|secret|upload|execute|eval|github)"
+)
+
+
+def _unicode_homoglyph(text: str) -> list[tuple[int, str]]:
+    output = []
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        skeleton = line.translate(_CONFUSABLES)
+        if skeleton != line and _SENSITIVE_SKELETON.search(skeleton):
+            output.append((line_number, line.strip()))
+    return output
+
+
+def _vscode_remote_vsix_install(text: str) -> list[tuple[int, str]]:
+    remote_vsix = re.compile(
+        r"(?i)(?:https?://[^\s\"']+\.vsix\b|"
+        r"(?:curl|wget|Invoke-WebRequest)[^\n]{0,200}\.vsix\b)"
+    )
+    installer = re.compile(
+        r"(?i)(?:\bcode(?:\.cmd)?\b|\bcodium\b)"
+        r"[^\n]{0,120}--install-extension[^\n]{0,120}\.vsix\b"
+    )
+    if not remote_vsix.search(text) or not installer.search(text):
+        return []
+    return _matching_lines(text, installer)
 
 
 def _matching_lines(text: str, pattern: re.Pattern) -> list[tuple[int, str]]:

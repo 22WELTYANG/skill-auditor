@@ -21,6 +21,10 @@
   <a href="https://github.com/22WELTYANG/skill-auditor/actions/workflows/python-checks.yml">
     <img src="https://github.com/22WELTYANG/skill-auditor/actions/workflows/python-checks.yml/badge.svg" alt="Python checks">
   </a>
+  <a href="https://github.com/22WELTYANG/skill-auditor/actions/workflows/skill-auditor.yml">
+    <img src="https://github.com/22WELTYANG/skill-auditor/actions/workflows/skill-auditor.yml/badge.svg" alt="Skill security">
+  </a>
+  <img src="https://img.shields.io/badge/scanned%20by-skill--auditor-blue" alt="scanned by skill-auditor">
 </p>
 
 ---
@@ -340,6 +344,15 @@ python scripts/scan.py ./path/to/skill  # 兼容旧入口
 4. 提交一个 PR，说明它所防御的真实攻击。
 
 **设计准则：** 一次误报只是让你多看一眼，一次漏报却可能酿成入侵。拿不准时，就抓出来。
+
+---
+
+## CI、Baseline 与审计锁
+
+项目已提供 GitHub Composite Action、pre-commit hook、SARIF Code Scanning、
+baseline/diff 门禁、可选 OpenAI-compatible/Ollama 语义复核，以及内容哈希锁文件。
+PR 中的 suppression 配置和 baseline 只从 base commit 读取。完整说明见
+[`docs/ci-ecosystem.zh-CN.md`](docs/ci-ecosystem.zh-CN.md)。
 
 ---
 

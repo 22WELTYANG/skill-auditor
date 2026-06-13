@@ -1,0 +1,27 @@
+name: Skill security
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: ./
+        with:
+          path: examples/clean-skill
+          recursive: "false"
+          baseline: auto
+          upload-sarif: "true"
+          upload-report: "true"
