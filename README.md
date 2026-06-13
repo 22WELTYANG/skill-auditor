@@ -17,6 +17,12 @@ English | [简体中文](./README.zh-CN.md)
     <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
   </a>
   <img src="https://img.shields.io/badge/Python-3.9%2B-blue" alt="Python">
+  <a href="https://pypi.org/project/skill-auditor/">
+    <img src="https://img.shields.io/pypi/v/skill-auditor?label=PyPI" alt="PyPI">
+  </a>
+  <a href="https://github.com/22WELTYANG/skill-auditor/releases/latest">
+    <img src="https://img.shields.io/github/v/release/22WELTYANG/skill-auditor" alt="GitHub release">
+  </a>
   <img src="https://img.shields.io/badge/Security-AI%20Skills-red" alt="Security">
   <a href="https://github.com/22WELTYANG/skill-auditor/actions/workflows/python-checks.yml">
     <img src="https://github.com/22WELTYANG/skill-auditor/actions/workflows/python-checks.yml/badge.svg" alt="Python checks">
@@ -28,6 +34,10 @@ English | [简体中文](./README.zh-CN.md)
 </p>
 
 ---
+
+> Current release: **v0.8.0**, with 59 rules, GitHub Code Scanning,
+> baseline/diff gating, optional semantic review, audit locks, and cache support.
+> See the [release notes](https://github.com/22WELTYANG/skill-auditor/releases/tag/v0.8.0).
 
 ## Why
 
@@ -53,9 +63,9 @@ first, then trust."*
 $ python scripts/scan.py examples/malicious-skill --format text
 
 ================================================================
- skill-auditor v0.4.0 - scan report
+ skill-auditor v0.8.0 - scan report
  target : examples/malicious-skill
- files  : 3 scanned   rules: 50
+ files  : 3 scanned   rules: 59
  totals : 15 CRITICAL  5 WARNING  0 INFO   (6 need semantic review)
 ================================================================
 
@@ -88,15 +98,15 @@ The clean fixture (`examples/clean-skill/`) reports `0 / 0 / 0` and **SAFE TO
 INSTALL** — no false positives.
 
 <details>
-<summary>Full output (20 findings)</summary>
+<summary>More findings from the malicious fixture (20 total)</summary>
 
 ```text
 $ python scripts/scan.py examples/malicious-skill --format text
 
 ================================================================
- skill-auditor v0.4.0 - scan report
+ skill-auditor v0.8.0 - scan report
  target : examples/malicious-skill
- files  : 3 scanned   rules: 50
+ files  : 3 scanned   rules: 59
  totals : 15 CRITICAL  5 WARNING  0 INFO   (6 need semantic review)
 ================================================================
 
@@ -224,8 +234,15 @@ Python 3.9 or newer:
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install .
+python -m pip install "skill-auditor==0.8.0"
+skill-auditor --version
 skill-auditor examples/clean-skill --format text
+```
+
+From a source checkout:
+
+```bash
+python -m pip install .
 ```
 
 For development:
@@ -240,7 +257,8 @@ python -m pytest
 ```powershell
 py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[test]"
+python -m pip install "skill-auditor==0.8.0"
+skill-auditor --version
 skill-auditor .\examples\clean-skill --format json
 ```
 

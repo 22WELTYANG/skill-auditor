@@ -17,6 +17,12 @@
     <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
   </a>
   <img src="https://img.shields.io/badge/Python-3.9%2B-blue" alt="Python">
+  <a href="https://pypi.org/project/skill-auditor/">
+    <img src="https://img.shields.io/pypi/v/skill-auditor?label=PyPI" alt="PyPI">
+  </a>
+  <a href="https://github.com/22WELTYANG/skill-auditor/releases/latest">
+    <img src="https://img.shields.io/github/v/release/22WELTYANG/skill-auditor" alt="GitHub release">
+  </a>
   <img src="https://img.shields.io/badge/Security-AI%20Skills-red" alt="Security">
   <a href="https://github.com/22WELTYANG/skill-auditor/actions/workflows/python-checks.yml">
     <img src="https://github.com/22WELTYANG/skill-auditor/actions/workflows/python-checks.yml/badge.svg" alt="Python checks">
@@ -28,6 +34,10 @@
 </p>
 
 ---
+
+> 当前正式版本：**v0.8.0**，包含 59 条规则、GitHub Code Scanning、
+> baseline/diff 门禁、可选语义复核、审计锁与缓存能力。
+> 查看[发布说明](https://github.com/22WELTYANG/skill-auditor/releases/tag/v0.8.0)。
 
 ## 为什么需要它
 
@@ -47,9 +57,9 @@
 $ python scripts/scan.py examples/malicious-skill --format text
 
 ================================================================
- skill-auditor v0.4.0 - scan report
+ skill-auditor v0.8.0 - scan report
  target : examples/malicious-skill
- files  : 3 scanned   rules: 50
+ files  : 3 scanned   rules: 59
  totals : 15 CRITICAL  5 WARNING  0 INFO   (6 need semantic review)
 ================================================================
 
@@ -81,15 +91,15 @@ $ python scripts/scan.py examples/malicious-skill --format text
 干净的样例（`examples/clean-skill/`）会报告 `0 / 0 / 0` 并给出 **SAFE TO INSTALL**——没有误报。
 
 <details>
-<summary>完整输出（20 条结果）</summary>
+<summary>恶意样例中的更多结果（共 20 条）</summary>
 
 ```text
 $ python scripts/scan.py examples/malicious-skill --format text
 
 ================================================================
- skill-auditor v0.4.0 - scan report
+ skill-auditor v0.8.0 - scan report
  target : examples/malicious-skill
- files  : 3 scanned   rules: 50
+ files  : 3 scanned   rules: 59
  totals : 15 CRITICAL  5 WARNING  0 INFO   (6 need semantic review)
 ================================================================
 
@@ -217,8 +227,15 @@ $ python scripts/scan.py examples/malicious-skill --format text
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install .
+python -m pip install "skill-auditor==0.8.0"
+skill-auditor --version
 skill-auditor examples/clean-skill --format text
+```
+
+从源码目录安装：
+
+```bash
+python -m pip install .
 ```
 
 开发环境：
@@ -233,7 +250,8 @@ python -m pytest
 ```powershell
 py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[test]"
+python -m pip install "skill-auditor==0.8.0"
+skill-auditor --version
 skill-auditor .\examples\clean-skill --format json
 ```
 
