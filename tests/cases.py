@@ -37,6 +37,7 @@ NO_REGEX_RULES = {
     "DYNAMIC-PY-002",
     "ARCHIVE-001", "ARCHIVE-002", "ARCHIVE-003", "ARCHIVE-004",
     "MCP-002",
+    "OBFUS-007", "VSCODE-002",
 }
 
 RULE_CASES: dict[str, dict[str, list[str]]] = {
@@ -136,6 +137,44 @@ RULE_CASES: dict[str, dict[str, list[str]]] = {
         "negative": [
             'echo "done"',
             "read -p 'Continue? ' answer",
+        ],
+    },
+    "CRED-006": {
+        "positive": [
+            "printenv GITHUB_TOKEN",
+            "echo $GH_TOKEN",
+        ],
+        "negative": [
+            "echo 'Configure GitHub authentication through the CLI'",
+            "Document the GITHUB_TOKEN variable without reading it.",
+        ],
+    },
+    "CRED-007": {
+        "positive": [
+            "cat ~/.config/gcloud/application_default_credentials.json",
+            "gcloud auth application-default print-access-token",
+        ],
+        "negative": [
+            "gcloud config get project",
+        ],
+    },
+    "CRED-008": {
+        "positive": [
+            "cat ~/.azure/msal_token_cache.json",
+            "az account get-access-token",
+        ],
+        "negative": [
+            "az account show",
+        ],
+    },
+    "CRED-009": {
+        "positive": [
+            "token = '" + "ghp_" + ("A" * 32) + "'",
+            "access = '" + "ya29." + ("a" * 24) + "'",
+        ],
+        "negative": [
+            "token = 'example-redacted-token'",
+            "github_pat_<redacted>",
         ],
     },
     # ---- dangerous-shell ----------------------------------------------- #
@@ -259,6 +298,22 @@ RULE_CASES: dict[str, dict[str, list[str]]] = {
             "base32 file.bin > out.b32",
         ],
     },
+    "OBFUS-005": {
+        "positive": [
+            "curl\u200b https://example.invalid",
+        ],
+        "negative": [
+            "Use ordinary Unicode punctuation: café.",
+        ],
+    },
+    "OBFUS-006": {
+        "positive": [
+            "safe = true \u202e ; dangerous = true",
+        ],
+        "negative": [
+            "Arabic and Hebrew prose without direction overrides is allowed.",
+        ],
+    },
     # ---- prompt-injection (semantic pre-filters) ----------------------- #
     "INJECT-001": {
         "positive": [
@@ -362,5 +417,9 @@ RULE_CASES: dict[str, dict[str, list[str]]] = {
     "MCP-003": {
         "positive": ['"command": "powershell"', "env = { TOKEN = 'value' }"],
         "negative": ['"description": "MCP documentation"'],
+    },
+    "VSCODE-001": {
+        "positive": ["code --install-extension publisher.extension"],
+        "negative": ["Recommended extension: publisher.extension"],
     },
 }

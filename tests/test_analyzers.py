@@ -17,7 +17,6 @@ def test_named_analyzer_corpus():
     for item in manifest:
         rule = rules[item["rule_id"]]
         assert rule["severity"] == item["severity"]
-        assert item["verdict"] == "DO_NOT_INSTALL"
         assert set(item["formats"]) == {"json", "text", "markdown", "sarif"}
         positive = FIXTURES / item["positive"]
         negative = FIXTURES / item["negative"]

@@ -1,0 +1,7 @@
+- id: skill-auditor
+  name: skill-auditor
+  description: Scan all Agent Skills in the repository for security risks.
+  entry: skill-auditor scan . --recursive --fail-on critical --semantic off
+  language: python
+  pass_filenames: false
+  always_run: true

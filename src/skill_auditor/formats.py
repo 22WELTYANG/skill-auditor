@@ -64,7 +64,7 @@ def _pretty_finding(finding, styled, severity_color, *, suppressed=False) -> str
     lines = [
         f"\n{tag} {finding['category']}  ({finding['rule_id']}){semantic}"
         f"  conf={finding.get('confidence', 'high')}{suppression}",
-        f"  {finding['file']}:{finding['line']}",
+        f"  {finding.get('artifact_uri') or finding['file']}:{finding['line']}",
         f"    > {finding['snippet']}",
         f"    why: {finding['rationale']}",
     ]
@@ -105,7 +105,7 @@ def render_markdown(report: dict) -> str:
             semantic = " ~semantic" if finding["needs_semantic_review"] else ""
             output.append(
                 f"| {finding['severity']} | `{finding['rule_id']}`{semantic} | "
-                f"`{finding['file']}:{finding['line']}` | "
+                f"`{finding.get('artifact_uri') or finding['file']}:{finding['line']}` | "
                 f"{finding.get('confidence', 'high')} | {why} |"
             )
     else:
@@ -123,6 +123,19 @@ def render_sarif(report: dict, rules: list[dict] | None = None) -> str:
 
 def build_sarif(report: dict, rules: list[dict] | None = None) -> dict:
     rules = rules or []
+    reports = report.get("reports")
+    if isinstance(reports, list):
+        runs = [_build_sarif_run(item, rules) for item in reports]
+    else:
+        runs = [_build_sarif_run(report, rules)]
+    return {
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "version": "2.1.0",
+        "runs": runs,
+    }
+
+
+def _build_sarif_run(report: dict, rules: list[dict]) -> dict:
     rule_index = {rule["id"]: index for index, rule in enumerate(rules)}
     driver_rules = [{
         "id": rule["id"],
@@ -136,14 +149,23 @@ def build_sarif(report: dict, rules: list[dict] | None = None) -> dict:
         },
     } for rule in rules]
     results = []
+    baseline_enabled = bool((report.get("baseline") or {}).get("enabled"))
     for finding in report.get("findings", []):
+        if finding.get("semantic_resolved"):
+            continue
+        if baseline_enabled and not finding.get("new", True):
+            continue
+        artifact = finding.get("artifact_uri") or finding["file"].split("!", 1)[0]
         result = {
             "ruleId": finding["rule_id"],
             "level": _SARIF_LEVEL.get(finding["severity"], "warning"),
             "message": {"text": finding["rationale"] or finding["rule_id"]},
             "locations": [{
                 "physicalLocation": {
-                    "artifactLocation": {"uri": finding["file"]},
+                    "artifactLocation": {
+                        "uri": artifact,
+                        "uriBaseId": "%SRCROOT%",
+                    },
                     "region": {
                         "startLine": max(1, int(finding["line"])),
                         "snippet": {"text": finding["snippet"]},
@@ -154,23 +176,36 @@ def build_sarif(report: dict, rules: list[dict] | None = None) -> dict:
                 "category": finding["category"],
                 "confidence": finding.get("confidence", "high"),
                 "needsSemanticReview": finding["needs_semantic_review"],
+                "severity": finding["severity"],
+                "fingerprint": finding.get("fingerprint"),
+                "archiveMember": finding.get("archive_member"),
+            },
+            "partialFingerprints": {
+                "primaryLocationLineHash": finding.get("fingerprint", ""),
             },
         }
+        if finding.get("archive_member"):
+            result["logicalLocations"] = [{
+                "name": finding["archive_member"],
+                "kind": "archive-member",
+                "fullyQualifiedName": (
+                    f"{artifact}!{finding['archive_member']}"
+                ),
+            }]
         if finding["rule_id"] in rule_index:
             result["ruleIndex"] = rule_index[finding["rule_id"]]
         results.append(result)
     return {
-        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
-        "version": "2.1.0",
-        "runs": [{
-            "tool": {"driver": {
-                "name": "skill-auditor",
-                "informationUri": "https://github.com/22WELTYANG/skill-auditor",
-                "version": report["version"],
-                "rules": driver_rules,
-            }},
-            "results": results,
-        }],
+        "tool": {"driver": {
+            "name": "skill-auditor",
+            "informationUri": "https://github.com/22WELTYANG/skill-auditor",
+            "version": report["version"],
+            "rules": driver_rules,
+        }},
+        "automationDetails": {
+            "id": report.get("automation_id") or "skill-auditor/default",
+        },
+        "results": results,
     }
 
 

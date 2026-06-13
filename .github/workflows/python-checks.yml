@@ -25,6 +25,8 @@ jobs:
         run: python -m compileall src scripts tests
       - name: Check generated catalog
         run: python scripts/render_catalog.py --check
+      - name: Validate Action and pre-commit metadata
+        run: pre-commit validate-manifest .pre-commit-hooks.yaml
       - name: Run zero-dependency regression suite
         run: python scripts/run_tests.py
       - name: Run pytest contracts
@@ -33,10 +35,12 @@ jobs:
         run: |
           skill-auditor --version
           python -m skill_auditor --version
-          skill-auditor examples/clean-skill --format json
-          skill-auditor examples/clean-skill --format text
-          skill-auditor examples/clean-skill --format markdown
-          skill-auditor examples/clean-skill --format sarif
+          skill-auditor examples/clean-skill --format json --no-cache
+          skill-auditor examples/clean-skill --format text --no-cache
+          skill-auditor examples/clean-skill --format markdown --no-cache
+          skill-auditor examples/clean-skill --format sarif --no-cache
+          skill-auditor scan examples/clean-skill --recursive --source-root . --format sarif --output skill-auditor.sarif --no-cache
+          python scripts/research_corpus.py --help
 
   compatibility:
     runs-on: ubuntu-latest

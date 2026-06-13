@@ -38,5 +38,21 @@
     "formats": ["json", "text", "markdown", "sarif"],
     "positive": "MCP-002/positive/write.py",
     "negative": "MCP-002/negative/read.py"
+  },
+  {
+    "rule_id": "OBFUS-007",
+    "severity": "WARNING",
+    "verdict": "REVIEW_BEFORE_INSTALL",
+    "formats": ["json", "text", "markdown", "sarif"],
+    "positive": "OBFUS-007/positive/AGENTS.md",
+    "negative": "OBFUS-007/negative/AGENTS.md"
+  },
+  {
+    "rule_id": "VSCODE-002",
+    "severity": "CRITICAL",
+    "verdict": "DO_NOT_INSTALL",
+    "formats": ["json", "text", "markdown", "sarif"],
+    "positive": "VSCODE-002/positive/setup.sh",
+    "negative": "VSCODE-002/negative/setup.sh"
   }
 ]

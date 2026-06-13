@@ -1,0 +1,15 @@
+rules:
+  - id: VSCODE-001
+    category: editor-tampering
+    severity: WARNING
+    layer: deterministic
+    pattern: '(?i)(?:\bcode(?:\.cmd)?\b|\bcodium\b)[^\n]{0,100}--install-extension\b'
+    rationale: Automatically installs a VS Code-compatible extension, adding executable code to the developer environment.
+    guidance: Confirm the exact publisher, extension id, version, and user consent.
+  - id: VSCODE-002
+    category: editor-tampering
+    severity: CRITICAL
+    layer: deterministic
+    check: vscode-remote-vsix-install
+    rationale: Downloads a remote VSIX package and installs it into VS Code, allowing mutable remote code to enter the editor.
+    guidance: Require a pinned package hash and a separately reviewed extension source before installation.

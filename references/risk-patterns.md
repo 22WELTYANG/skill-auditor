@@ -20,14 +20,15 @@ deterministic matches or semantic pre-filters that require contextual review.
 |---|---|---:|
 | Filesystem boundary | deterministic | 2 |
 | Data exfiltration | deterministic | 6 |
-| Credential read | deterministic | 5 |
+| Credential read | deterministic | 9 |
 | Dangerous shell | deterministic | 8 |
 | PowerShell execution | deterministic | 4 |
 | Dynamic execution | deterministic | 6 |
 | Archive risk | deterministic | 4 |
 | Git hook persistence | deterministic | 2 |
 | MCP configuration tampering | deterministic | 3 |
-| Obfuscation / evasion | deterministic | 4 |
+| Editor and extension tampering | deterministic | 2 |
+| Obfuscation / evasion | deterministic, semantic | 7 |
 | Prompt injection / instruction hijack | semantic | 4 |
 | Description vs. behavior mismatch | semantic | 1 |
 | Logic bomb | semantic | 1 |
@@ -125,6 +126,31 @@ Reads a .env file, which usually holds the current project secrets.
 Reads OS keychain entries or token-bearing files.
 
 - **Pattern:** `\bsecurity\s+find-(?:generic|internet)-password\b|\b(?:cat|read|less|more|printenv|echo)\b[^\n]*\b[\w./-]*token[\w./-]*\b`
+
+### `CRED-006` · CRITICAL · deterministic
+
+Reads a GitHub Actions token or personal access token that can grant repository and organization access.
+
+- **Pattern:** `(?i)(?:\$(?:GITHUB_TOKEN|GH_TOKEN)\b|process\.env\.(?:GITHUB_TOKEN|GH_TOKEN)\b|os\.(?:environ|getenv)[^\n]{0,40}(?:GITHUB_TOKEN|GH_TOKEN)|Env:(?:GITHUB_TOKEN|GH_TOKEN)\b|(?:cat|printenv|echo|env|Get-Content|type)\b[^\n]*(?:(?:GITHUB_TOKEN|GH_TOKEN)|github_pat_|gh[pousr]_))`
+
+### `CRED-007` · CRITICAL · deterministic
+
+Reads or exports GCP application-default credentials, access tokens, or service-account private key material.
+
+- **Pattern:** `(?i)(?:\.config/gcloud/application_default_credentials\.json|gcloud\s+auth\s+application-default\s+print-access-token|GOOGLE_APPLICATION_CREDENTIALS|service[_ -]?account[^\n]{0,30}private[_ -]?key)`
+
+### `CRED-008` · CRITICAL · deterministic
+
+Reads Azure client secrets, cached tokens, access tokens, or shared-access signatures.
+
+- **Pattern:** `(?i)(?:\.azure/(?:accessTokens\.json|msal_token_cache)|AZURE_CLIENT_SECRET|az\s+account\s+get-access-token|(?:SharedAccessSignature|sig=)[^\n]{0,80}(?:sv=|se=))`
+
+### `CRED-009` · WARNING · deterministic
+
+Contains a GitHub, GCP, or Azure token-shaped literal that may be a committed credential.
+
+- **Pattern:** `(?i)\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|ya29\.[A-Za-z0-9_-]{20,})\b|\bsv=\d{4}-\d{2}-\d{2}[^\s]{0,200}&sig=[A-Za-z0-9%+/=_-]{16,}`
+- **Review:** Confirm the value is synthetic or revoked; never publish a live credential.
 
 
 ## Dangerous shell
@@ -330,6 +356,25 @@ An MCP-specific configuration declares an executable command or environment bloc
 - **Pattern:** `(?i)(?:"?command"?\s*[:=]\s*["\x27]?(?:powershell|cmd|bash|sh|node|python|npx|uvx)\b|"?env"?\s*[:=])`
 
 
+## Editor and extension tampering
+
+Category id: `editor-tampering`
+
+### `VSCODE-001` · WARNING · deterministic
+
+Automatically installs a VS Code-compatible extension, adding executable code to the developer environment.
+
+- **Pattern:** `(?i)(?:\bcode(?:\.cmd)?\b|\bcodium\b)[^\n]{0,100}--install-extension\b`
+- **Review:** Confirm the exact publisher, extension id, version, and user consent.
+
+### `VSCODE-002` · CRITICAL · deterministic
+
+Downloads a remote VSIX package and installs it into VS Code, allowing mutable remote code to enter the editor.
+
+- **Check:** `vscode-remote-vsix-install`
+- **Review:** Require a pinned package hash and a separately reviewed extension source before installation.
+
+
 ## Obfuscation / evasion
 
 Category id: `obfuscation`
@@ -357,6 +402,27 @@ Long hex-escape sequence, often a payload encoded to evade plain-text scanning.
 Decodes hex or base32 data and pipes it into a shell, obfuscated execution.
 
 - **Pattern:** `\b(?:xxd\s+-r|base32\s+(?:-d|--decode))\b[^\n]*\|\s*(?:sh|bash|python[0-9.]*|perl|node|eval)\b`
+
+### `OBFUS-005` · WARNING · deterministic
+
+Contains zero-width or word-joining Unicode format characters that can conceal changes from reviewers.
+
+- **Pattern:** `[\u200B\u200C\u200D\u2060\uFEFF]`
+- **Review:** Inspect the exact Unicode code points and remove characters that are not required by the language.
+
+### `OBFUS-006` · CRITICAL · deterministic
+
+Contains bidirectional text controls that can make source code display in a different order than it executes.
+
+- **Pattern:** `[\u202A-\u202E\u2066-\u2069]`
+- **Review:** Review the raw code points and reject unexplained bidirectional controls in executable or instructional content.
+
+### `OBFUS-007` · WARNING · semantic
+
+Uses Greek or Cyrillic lookalikes inside a security-sensitive command, URL, credential, or agent instruction.
+
+- **Check:** `unicode-homoglyph`
+- **Review:** Compare the displayed text with its normalized skeleton and decide whether the mixed script is legitimate language or deliberate concealment.
 
 
 ## Prompt injection / instruction hijack
