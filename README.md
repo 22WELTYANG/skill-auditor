@@ -433,6 +433,16 @@ Severity drives the verdict: any **CRITICAL** → DO NOT INSTALL · any **WARNIN
 
 If this project helps you audit AI skills more safely, please consider giving it a star. It helps more developers discover the project.
 
+### Partner
+
+This project participates in the OrcaRouter Partner Program.
+[OrcaRouter](https://www.orcarouter.ai/ref/ref_05c11b9625b0c027a23c) is an
+optional LLM API provider for accessing multiple model APIs through one service;
+it is not required to use `skill-auditor`.
+
+Using this referral link helps support the continued development and maintenance
+of this open-source project.
+
 ---
 
 ## Contributing

@@ -350,6 +350,13 @@ python scripts/scan.py ./path/to/skill  # 兼容旧入口
 
 如果这个项目帮助你更安全地检查 AI Skill，欢迎点一个 Star。这会帮助更多开发者发现它。
 
+### 合作伙伴
+
+本项目参与 OrcaRouter Partner Program。
+[OrcaRouter](https://www.orcarouter.ai/ref/ref_05c11b9625b0c027a23c) 是一个可选的大模型 API Provider，可通过统一服务访问多个模型 API；使用 `skill-auditor` 并不依赖它。
+
+通过此推荐链接使用 OrcaRouter，有助于支持本开源项目的持续开发与维护。
+
 ---
 
 ## 参与贡献
