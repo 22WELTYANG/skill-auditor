@@ -2,7 +2,9 @@
 # Run this only from a reviewed, fixed release or commit checkout.
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || true)"
+if ! SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd -P)"; then
+  SCRIPT_DIR=""
+fi
 if [ -z "$SCRIPT_DIR" ] || [ ! -f "$SCRIPT_DIR/SKILL.md" ]; then
   printf '%s\n' 'install error: run this from a reviewed fixed checkout' >&2
   exit 3
