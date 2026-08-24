@@ -16,7 +16,7 @@
   <a href="https://github.com/22WELTYANG/skill-auditor/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
   </a>
-  <img src="https://img.shields.io/badge/Python-3.9%2B-blue" alt="Python">
+  <img src="https://img.shields.io/badge/Python-3.9%E2%80%933.14-blue" alt="Python 3.9–3.14">
   <a href="https://pypi.org/project/skill-auditor/">
     <img src="https://img.shields.io/pypi/v/skill-auditor?label=PyPI" alt="PyPI">
   </a>
@@ -35,9 +35,25 @@
 
 ---
 
-> 当前正式版本：**v0.8.0**，包含 59 条规则、GitHub Code Scanning、
-> baseline/diff 门禁、可选语义复核、审计锁与缓存能力。
-> 查看[发布说明](https://github.com/22WELTYANG/skill-auditor/releases/tag/v0.8.0)。
+> 当前开发目标：**v0.9.0（尚未发布）**。最新已发布包是 PyPI 上的
+> [v0.8.0](https://pypi.org/project/skill-auditor/0.8.0/)。如需测试 v0.9.0
+> 的安全修复与接口变化，请从当前源码检出安装。
+
+## 快速开始
+
+在当前源码检出中安装开发版本（需要 Python 3.9 或更高版本），然后在不运行
+目标 Skill 的前提下执行扫描：
+
+```bash
+python -m pip install .
+skill-auditor scan ./path/to/skill --format text
+skill-auditor scan https://github.com/owner/repository --ref <REV> --format json
+```
+
+退出码 `0` 表示通过当前 `--fail-on` 门槛；低于门槛的 finding 仍可能令报告给出
+复核结论。`1` 表示非 CRITICAL finding 触发门槛，`2` 表示 CRITICAL finding
+触发门槛，`3` 表示扫描错误或覆盖不完整。应始终解析报告；安装还要求
+`scan_status: COMPLETE`。
 
 ## 为什么需要它
 
@@ -57,7 +73,7 @@
 $ python scripts/scan.py examples/malicious-skill --format text
 
 ================================================================
- skill-auditor v0.8.0 - scan report
+ skill-auditor v0.9.0 - scan report
  target : examples/malicious-skill
  files  : 3 scanned   rules: 59
  totals : 15 CRITICAL  5 WARNING  0 INFO   (6 need semantic review)
@@ -81,14 +97,16 @@ $ python scripts/scan.py examples/malicious-skill --format text
     why: The frontmatter description reads as a benign task, but the body
          performs network, credential, or destructive actions it never mentions.
 
-  ... (17 more findings; all 7 categories hit)
+  ... (另有 17 条；该样例覆盖的七类风险均命中)
 
 ================================================================
  VERDICT: DO NOT INSTALL
 ================================================================
 ```
 
-干净的样例（`examples/clean-skill/`）会报告 `0 / 0 / 0` 并给出 **SAFE TO INSTALL**——没有误报。
+干净样例（`examples/clean-skill/`）预期报告 `0 / 0 / 0` 并给出
+**SAFE TO INSTALL**。该样例只是一项回归检查，不代表所有真实 Skill 都不会
+出现误报或漏报。
 
 <details>
 <summary>恶意样例中的更多结果（共 20 条）</summary>
@@ -97,7 +115,7 @@ $ python scripts/scan.py examples/malicious-skill --format text
 $ python scripts/scan.py examples/malicious-skill --format text
 
 ================================================================
- skill-auditor v0.8.0 - scan report
+ skill-auditor v0.9.0 - scan report
  target : examples/malicious-skill
  files  : 3 scanned   rules: 59
  totals : 15 CRITICAL  5 WARNING  0 INFO   (6 need semantic review)
@@ -222,12 +240,20 @@ $ python scripts/scan.py examples/malicious-skill --format text
 
 ### Python 包
 
-需要 Python 3.9 或更高版本：
+v0.9.0 发布后，默认从 PyPI 安装精确版本，不使用可变的源码分支：
+
+```bash
+python -m pip install skill-auditor==0.9.0
+```
+
+在该版本正式发布前，不要把已发布的 v0.8.0 当作已经包含这些安全修复。测试
+未发布的 v0.9.0 开发版本时，请使用 Python 3.9 或更高版本并安装这个经过审阅
+的源码检出：
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install "skill-auditor==0.8.0"
+python -m pip install .
 skill-auditor --version
 skill-auditor examples/clean-skill --format text
 ```
@@ -250,34 +276,40 @@ python -m pytest
 ```powershell
 py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install "skill-auditor==0.8.0"
+python -m pip install .
 skill-auditor --version
 skill-auditor .\examples\clean-skill --format json
 ```
 
-安装 Agent Skill 本体：
+v0.9.0 发布后，只从经过审阅的 release 完整提交安装 Agent Skill（请把占位符
+替换为完整 commit SHA）：
 
 ```powershell
+git clone https://github.com/22WELTYANG/skill-auditor.git
+Set-Location skill-auditor
+git checkout --detach <REVIEWED_V0_9_0_COMMIT_SHA>
 .\install.ps1
 # 如果本机策略阻止脚本：
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-### Shell 安装器
+### 从固定版本安装 Agent Skill
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/22WELTYANG/skill-auditor/main/install.sh | bash
-```
-
-不想把陌生人的安装脚本直接管道喂给你的 shell（你会用这个工具，正是出于这个原因）？那就先克隆下来、读过再本地运行：
+v0.9.0 发布后，先在固定提交的检出中审阅安装器，再本地运行：
 
 ```bash
 git clone https://github.com/22WELTYANG/skill-auditor.git
 cd skill-auditor
+git checkout --detach <REVIEWED_V0_9_0_COMMIT_SHA>
 bash install.sh
 ```
 
-安装脚本会把这个 skill 复制到 `~/.claude/skills` 和 `~/.codex/skills`（如果检测到 Cursor，也会复制到 `~/.cursor/skills`）。扫描时需要 Python 3.9+；PyYAML 为可选项（缺失时会自动使用内置的回退解析器）。
+设置了 `CODEX_HOME` 时，安装器优先使用 `$CODEX_HOME/skills`；同时兼容
+Claude Code、Codex、Agent 与 Cursor 的受支持目录，并避免重复安装。可通过
+`SKILLS_DIR=/path bash install.sh` 指定单一目标。扫描时需要 Python 3.9+；
+PyYAML 为可选项，受支持的 YAML 子集可由内置解析器读取。复制前，安装器会用
+`skill-auditor-payload.json` 核验 Git 跟踪 allowlist；该清单固定每个 payload
+文件的路径、大小和 SHA-256。
 
 ---
 
@@ -286,20 +318,103 @@ bash install.sh
 针对本地目录、zip/tar 归档或 GitHub URL 运行扫描器：
 
 ```bash
-skill-auditor ./path/to/skill --format text
-skill-auditor ./path/to/skill.zip --format json
-skill-auditor https://github.com/someone/skill --format text
+skill-auditor scan ./path/to/skill --format text
+skill-auditor scan ./path/to/skill.zip --format json
+skill-auditor scan https://github.com/someone/skill --ref <REV> --format text
 python -m skill_auditor ./path/to/skill
 python scripts/scan.py ./path/to/skill  # 兼容旧入口
 ```
 
-加上 `--format json` 可输出机器可读格式。退出码即为结论：`0` 安全 · `1` 需复核 · `2` 不要安装 · `3` 扫描出错。
+裸目标、模块和脚本入口继续保持兼容。JSON 使用
+[`skill-auditor-report/v1` schema](schemas/skill-auditor-report-v1.schema.json)，
+并包含 `scan_status`、不可变的 `source`
+身份和 `coverage`。机器格式的 stdout 只包含指定文档，运行日志写入 stderr。
+旧 finding 别名在 v0.9.0 中保留并给出弃用提示，计划在 v1.0 移除。
 
 被扫描 Skill 自带的 suppression 不受信任。需要抑制误报时，使用
 `--config C:\trusted\auditor.yml` 指向扫描目标之外、由审计者维护的配置。
 `--min-severity` 只过滤显示内容，不会改变 verdict 或退出码。
 
+审计者维护的二进制豁免使用 `trusted_assets`；每项必须同时固定目标内相对
+`path` 和 `sha256`，且不会进入安装结果：
+
+```yaml
+trusted_assets:
+  - path: assets/logo.png
+    sha256: <64 位小写十六进制字符>
+```
+
+自定义规则目录为空或格式错误，或规则含未知 `check`、不支持的字段类型、
+不支持的 YAML 结构时，扫描都会失败关闭。
+
 通过你的 agent 使用则更简单——只需问一句*「这个 skill 装着安全吗？」*，skill 会自动触发，并叠加下文所说的语义层。
+
+---
+
+## CI、Baseline 与审计锁
+
+使用仓库 Action 时授予只读源码权限和 Code Scanning 写权限：
+
+```yaml
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+steps:
+  - uses: actions/checkout@<FULL_COMMIT_SHA> # 固定已审阅的 checkout 版本
+    with:
+      fetch-depth: 0
+      persist-credentials: false
+  - uses: 22WELTYANG/skill-auditor@<REVIEWED_V0_9_0_COMMIT_SHA>
+    with:
+      path: .
+      recursive: "true"
+      baseline: auto
+      artifact-name: skill-auditor-report
+      sarif-category: skill-auditor
+```
+
+Action 会先上传 SARIF，再应用扫描退出码门禁。PR 中的 suppression 配置和
+自动 baseline 均从 base commit 读取，而非不可信的 PR head。发布后应优先固定
+完整 commit SHA，而不是可移动的主版本标签，以获得可复现审计。同一 job
+多次扫描时可自定义 `artifact-name`，需要区分 Code Scanning 分析时可设置
+`sarif-category`。非法输入会返回 `verdict=ERROR` 和退出码 `3`，不会抛出
+traceback。
+
+```bash
+skill-auditor scan . --recursive --source-root . --format sarif --output audit.sarif
+skill-auditor baseline create . --recursive --output trusted-baseline.json
+skill-auditor scan . --recursive --baseline trusted-baseline.json
+skill-auditor lock create ./skills/demo --output skill-auditor.lock
+skill-auditor lock verify ./skills/demo --lock skill-auditor.lock
+```
+
+可选语义复核支持 OpenAI-compatible API 和 Ollama：
+
+```bash
+OPENAI_API_KEY=... skill-auditor scan ./skill --semantic api --semantic-model gpt-4.1-mini
+skill-auditor scan ./skill --semantic local --semantic-model qwen2.5:7b
+```
+
+语义判断默认只作建议，不能移除 finding。报告会记录经 CLI/环境变量解析后
+实际生效的请求模型、base URL、prompt 版本和 effect。只有审计者明确选择该
+策略时才使用
+`--semantic-effect dismiss`；确定性 finding、不确定判断、无效响应和 Provider
+故障仍维持原有门禁行为。
+
+pre-commit 配置：
+
+```yaml
+repos:
+  - repo: https://github.com/22WELTYANG/skill-auditor
+    rev: <REVIEWED_V0_9_0_COMMIT_SHA>
+    hooks:
+      - id: skill-auditor
+```
+
+参见[CI 与信任基础设施](docs/ci-ecosystem.zh-CN.md)和
+[公共语料研究方法](docs/research-methodology.md)。
 
 ---
 
@@ -307,8 +422,15 @@ python scripts/scan.py ./path/to/skill  # 兼容旧入口
 
 两个层级，汇成一份报告、一个结论：
 
-- **确定性层** —— `scripts/scan.py` 从 `rules/*.yaml` 加载所有规则，对每个 `SKILL.md`、参考文档和脚本做模式匹配。快速、可复现、精确定位到 `file:line`。
+- **确定性层** —— `scripts/scan.py` 从 `rules/*.yaml` 加载所有规则。目标中的每个
+  路径要么作为限额内、可解码文本接受扫描，要么在不可变清单中记录明确处置。
+  无法检查的内容会令扫描变为不完整，而不会被静默放行；策略或审计者排除的内容
+  会获得明确且参与哈希的处置，也绝不会进入安装结果。
 - **语义层** —— `SKILL.md` 驱动 agent 去阅读被预筛出的可疑位置（标记为 `~semantic`），并判断其*意图*：伪装的真实用途、针对 agent 的社会工程、以及单凭正则无法定论的触发式载荷。
+
+扫描、内容哈希、缓存查找、报告和安装 payload 共用同一份 manifest；快照捕获
+期间检测到的源变化会报错，捕获后的变化则无法改变已固定的安装字节。文件系统
+边界和归档完整性检查是引擎不变量，不能通过自定义规则目录移除。
 
 由于 `SKILL.md` + YAML frontmatter 是 **Claude Code**、**Codex**、**Cursor** 三者共用的格式，一个审计器即可覆盖全部三家。
 
@@ -368,16 +490,8 @@ python scripts/scan.py ./path/to/skill  # 兼容旧入口
 3. 在 [`tests/cases.py`](tests/cases.py) 里为这条规则补上 `positive` / `negative` 行样本，然后运行测试套件：`python scripts/run_tests.py`（零依赖）。它会校验每条规则在 positive 上触发、在 negative 上保持沉默，确保 `examples/clean-skill/` 仍为零命中，并验证目录与规则同步——这正是 CI 所跑的检查。
 4. 提交一个 PR，说明它所防御的真实攻击。
 
-**设计准则：** 一次误报只是让你多看一眼，一次漏报却可能酿成入侵。拿不准时，就抓出来。
-
----
-
-## CI、Baseline 与审计锁
-
-项目已提供 GitHub Composite Action、pre-commit hook、SARIF Code Scanning、
-baseline/diff 门禁、可选 OpenAI-compatible/Ollama 语义复核，以及内容哈希锁文件。
-PR 中的 suppression 配置和 baseline 只从 base commit 读取。完整说明见
-[`docs/ci-ecosystem.zh-CN.md`](docs/ci-ecosystem.zh-CN.md)。
+**设计准则：** 优先提供可复核证据；在宣称质量前，应基于冻结、人工标注的
+语料同时测量误报与漏报。
 
 ---
 

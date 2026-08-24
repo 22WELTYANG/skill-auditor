@@ -1,100 +1,27 @@
 #!/usr/bin/env bash
-#
-# skill-auditor installer.
-#
-#   Remote (one-liner):
-#     curl -fsSL https://raw.githubusercontent.com/22WELTYANG/skill-auditor/main/install.sh | bash
-#
-#   Local (from a clone):
-#     bash install.sh
-#
-# Install targets (verified June 2026):
-#   ~/.claude/skills   Claude Code global skills dir.                  [primary]
-#   ~/.codex/skills    Codex global skills dir (openai/skills uses it).[primary]
-#   ~/.agents/skills   Emerging cross-agent neutral location.          [forward-looking]
-#   ~/.cursor/skills   Cursor's own global dir (newer versions only).  [fallback]
-# Note: recent Cursor auto-loads skills from ~/.claude/skills and ~/.codex/skills,
-# so installing to the two primaries already covers Cursor on current versions.
-# Older Cursor only supports project-level .cursor/skills; the ~/.cursor copy is
-# a best-effort fallback for those.
-#
-# Override every target with:  SKILLS_DIR=/path ./install.sh
-#
+# Run this only from a reviewed, fixed release or commit checkout.
 set -euo pipefail
 
-REPO_URL="${SKILL_AUDITOR_REPO:-https://github.com/22WELTYANG/skill-auditor}"
-SKILL_NAME="skill-auditor"
-
-say()  { printf '  %s\n' "$*"; }
-ok()   { printf '  \033[1;32m✓\033[0m %s\n' "$*"; }
-note() { printf '  \033[1;36mi\033[0m %s\n' "$*"; }
-warn() { printf '  \033[1;33m!\033[0m %s\n' "$*"; }
-
-# --- locate the source tree (local clone, or fetch a temp clone) ------------ #
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || true)"
-CLEANUP=""
-if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/SKILL.md" ]; then
-  SRC="$SCRIPT_DIR"
-  say "Installing from local checkout: $SRC"
+if [ -z "$SCRIPT_DIR" ] || [ ! -f "$SCRIPT_DIR/SKILL.md" ]; then
+  printf '%s\n' 'install error: run this from a reviewed fixed checkout' >&2
+  exit 3
+fi
+
+PYTHON_BIN="$(command -v python3 || command -v python || true)"
+if [ -z "$PYTHON_BIN" ]; then
+  printf '%s\n' 'install error: Python 3.9 or newer is required' >&2
+  exit 3
+fi
+
+INSTALL_ARGS=(--source "$SCRIPT_DIR")
+if [ -n "${SKILLS_DIR:-}" ]; then
+  INSTALL_ARGS+=(--skills-dir "$SKILLS_DIR")
+fi
+
+if PYTHONPATH="$SCRIPT_DIR/src${PYTHONPATH:+:$PYTHONPATH}" \
+  "$PYTHON_BIN" -m skill_auditor.installer "${INSTALL_ARGS[@]}"; then
+  exit 0
 else
-  command -v git >/dev/null 2>&1 || { echo "error: git is required for remote install" >&2; exit 1; }
-  SRC="$(mktemp -d)"
-  CLEANUP="$SRC"
-  say "Cloning $REPO_URL ..."
-  git clone --depth 1 "$REPO_URL" "$SRC" >/dev/null 2>&1
+  exit 3
 fi
-trap '[ -n "$CLEANUP" ] && rm -rf "$CLEANUP"' EXIT
-
-# --- copy the skill into one target dir ------------------------------------- #
-install_to() {
-  local dest="$1/$SKILL_NAME"
-  mkdir -p "$dest"
-  cp "$SRC/SKILL.md" "$dest/"
-  cp -R "$SRC/scripts" "$dest/"
-  cp -R "$SRC/src" "$dest/"
-  cp -R "$SRC/rules" "$dest/"
-  cp -R "$SRC/references" "$dest/"
-  cp "$SRC/pyproject.toml" "$dest/"
-  ok "Installed to $dest"
-}
-
-# --- decide where to install ------------------------------------------------ #
-# Single source of truth for install targets is scripts/paths.py, so the dir
-# list never drifts between the installer and the scanner. Fall back to the
-# hardcoded list only if Python isn't available to evaluate it.
-PYBIN="$(command -v python3 || command -v python || true)"
-TARGETS=""
-if [ -n "$PYBIN" ] && [ -f "$SRC/scripts/paths.py" ]; then
-  TARGETS="$("$PYBIN" "$SRC/scripts/paths.py" --install-targets 2>/dev/null || true)"
-fi
-
-if [ -n "$TARGETS" ]; then
-  # paths.py already applied SKILLS_DIR override + Cursor-presence logic.
-  while IFS= read -r parent; do
-    [ -n "$parent" ] && install_to "$parent"
-  done <<EOF
-$TARGETS
-EOF
-  if [ -z "${SKILLS_DIR:-}" ] && [ -d "$HOME/.cursor" ]; then
-    note "Cursor: newer versions auto-load from ~/.claude/skills; the ~/.cursor copy is only a fallback for older versions."
-  fi
-elif [ -n "${SKILLS_DIR:-}" ]; then
-  install_to "$SKILLS_DIR"
-else
-  # fallback (Python unavailable): keep in sync with scripts/paths.py
-  install_to "$HOME/.claude/skills"
-  install_to "$HOME/.codex/skills"
-  install_to "$HOME/.agents/skills"
-  if [ -d "$HOME/.cursor" ]; then
-    install_to "$HOME/.cursor/skills"
-    note "Cursor: newer versions auto-load from ~/.claude/skills; this ~/.cursor copy is only a fallback for older versions."
-  fi
-fi
-
-command -v python3 >/dev/null 2>&1 || command -v python >/dev/null 2>&1 \
-  || warn "Python 3 not found on PATH — scan.py needs it at scan time."
-
-echo
-ok "Done. Try it:"
-say "  ask your agent:  \"audit this skill before I install it: <path-or-url>\""
-say "  or directly:     python ~/.claude/skills/$SKILL_NAME/scripts/scan.py <path-or-url> --format text"

@@ -5,9 +5,11 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import uuid
 from pathlib import Path
 
-SCHEMA = "skill-auditor-cache/v1"
+SCHEMA = "skill-auditor-cache/v2"
+LEGACY_SCHEMAS = {"skill-auditor-cache/v1"}
 
 
 class CacheError(ValueError):
@@ -26,7 +28,7 @@ def default_directory() -> Path:
 def key(payload: dict) -> str:
     encoded = json.dumps(
         payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
-    ).encode("utf-8")
+    ).encode("utf-8", "surrogatepass")
     return hashlib.sha256(encoded).hexdigest()
 
 
@@ -61,6 +63,8 @@ def load(directory: Path, cache_key: str) -> dict | None:
         raise
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise CacheError(f"cannot read cache entry: {exc}") from exc
+    if isinstance(data, dict) and data.get("schema") in LEGACY_SCHEMAS:
+        return None
     if (
         not isinstance(data, dict)
         or data.get("schema") != SCHEMA
@@ -68,26 +72,40 @@ def load(directory: Path, cache_key: str) -> dict | None:
         or not isinstance(data.get("report"), dict)
     ):
         raise CacheError("cache entry failed integrity validation")
-    return data["report"]
+    report = data["report"]
+    if (
+        report.get("schema") != "skill-auditor-report/v1"
+        or report.get("scan_status") != "COMPLETE"
+        or not isinstance(report.get("source"), dict)
+        or not isinstance(report.get("coverage"), dict)
+    ):
+        raise CacheError("cached report does not satisfy the report v1 contract")
+    return report
 
 
 def store(directory: Path, cache_key: str, report: dict) -> None:
+    temporary: Path | None = None
     try:
         directory.mkdir(parents=True, exist_ok=True)
         if directory.is_symlink():
             raise CacheError("cache directory must not be a symlink")
         destination = directory / f"{cache_key}.json"
-        temporary = directory / f".{cache_key}.{os.getpid()}.tmp"
+        temporary = directory / f".{cache_key}.{uuid.uuid4().hex}.tmp"
         payload = {
             "schema": SCHEMA,
             "cache_key": cache_key,
             "report": report,
         }
-        with temporary.open("w", encoding="utf-8", newline="\n") as handle:
+        with temporary.open("x", encoding="utf-8", newline="\n") as handle:
             json.dump(payload, handle, indent=2, ensure_ascii=False)
             handle.write("\n")
         os.replace(temporary, destination)
     except CacheError:
         raise
     except OSError as exc:
+        if temporary is not None:
+            try:
+                temporary.unlink(missing_ok=True)
+            except OSError:
+                pass
         raise CacheError(f"cannot write cache entry: {exc}") from exc

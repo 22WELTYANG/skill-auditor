@@ -7,8 +7,9 @@ import os
 import re
 from pathlib import Path
 
-_PRIMARY = ("~/.claude/skills", "~/.codex/skills")
-_FORWARD = ("~/.agents/skills",)
+_CLAUDE = "~/.claude/skills"
+_LEGACY_CODEX = "~/.codex/skills"
+_AGENTS = "~/.agents/skills"
 _CURSOR = "~/.cursor/skills"
 _WINDOWS_RESERVED = {
     "CON", "PRN", "AUX", "NUL",
@@ -26,21 +27,45 @@ def _expand(path: str) -> Path:
     return Path(os.path.expanduser(path))
 
 
+def _default_dirs(*, include_cursor: bool) -> list[Path]:
+    candidates: list[Path] = []
+    codex_home = os.environ.get("CODEX_HOME")
+    if codex_home:
+        candidates.append(Path(codex_home).expanduser() / "skills")
+    candidates.extend((_expand(_CLAUDE), _expand(_LEGACY_CODEX), _expand(_AGENTS)))
+    if include_cursor:
+        candidates.append(_expand(_CURSOR))
+    return _deduplicate(candidates)
+
+
+def _deduplicate(candidates: list[Path]) -> list[Path]:
+    output: list[Path] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        try:
+            normalized = candidate.resolve(strict=False)
+        except OSError:
+            normalized = Path(os.path.abspath(candidate))
+        key = os.path.normcase(str(normalized))
+        if key in seen:
+            continue
+        seen.add(key)
+        output.append(candidate)
+    return output
+
+
 def install_targets() -> list[Path]:
     override = os.environ.get("SKILLS_DIR")
     if override:
         return [Path(override).expanduser()]
-    targets = [_expand(path) for path in (*_PRIMARY, *_FORWARD)]
-    if _expand("~/.cursor").is_dir():
-        targets.append(_expand(_CURSOR))
-    return targets
+    return _default_dirs(include_cursor=_expand("~/.cursor").is_dir())
 
 
 def search_dirs() -> list[Path]:
     override = os.environ.get("SKILLS_DIR")
     if override:
         return [Path(override).expanduser()]
-    return [_expand(path) for path in (*_PRIMARY, *_FORWARD, _CURSOR)]
+    return _default_dirs(include_cursor=True)
 
 
 def validate_skill_name(name: str) -> str:
@@ -83,13 +108,15 @@ def _is_junction(path: Path) -> bool:
         try:
             return bool(checker())
         except OSError:
-            return False
+            return True
     try:
         attributes = path.lstat().st_file_attributes  # type: ignore[attr-defined]
         import stat
         return bool(attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT)
-    except (AttributeError, OSError):
+    except AttributeError:
         return False
+    except OSError:
+        return True
 
 
 def installed_skills() -> list[Path]:

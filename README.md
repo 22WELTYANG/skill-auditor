@@ -16,7 +16,7 @@ English | [简体中文](./README.zh-CN.md)
   <a href="https://github.com/22WELTYANG/skill-auditor/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
   </a>
-  <img src="https://img.shields.io/badge/Python-3.9%2B-blue" alt="Python">
+  <img src="https://img.shields.io/badge/Python-3.9%E2%80%933.14-blue" alt="Python 3.9–3.14">
   <a href="https://pypi.org/project/skill-auditor/">
     <img src="https://img.shields.io/pypi/v/skill-auditor?label=PyPI" alt="PyPI">
   </a>
@@ -35,9 +35,26 @@ English | [简体中文](./README.zh-CN.md)
 
 ---
 
-> Current release: **v0.8.0**, with 59 rules, GitHub Code Scanning,
-> baseline/diff gating, optional semantic review, audit locks, and cache support.
-> See the [release notes](https://github.com/22WELTYANG/skill-auditor/releases/tag/v0.8.0).
+> Development target: **v0.9.0 (unreleased)**. The latest published package is
+> [v0.8.0 on PyPI](https://pypi.org/project/skill-auditor/0.8.0/). Install this
+> checkout from source to test the v0.9.0 security and interface changes.
+
+## Quick start
+
+From this source checkout (Python 3.9 or newer), install the development build,
+then scan without running the target Skill:
+
+```bash
+python -m pip install .
+skill-auditor scan ./path/to/skill --format text
+skill-auditor scan https://github.com/owner/repository --ref <REV> --format json
+```
+
+Exit code `0` means the configured `--fail-on` gate passed; the report may still
+carry a review verdict below that threshold. Exit `1` means a non-critical
+finding met the gate, `2` means a critical finding met it, and `3` means a scan
+error or incomplete coverage. Always parse the report. Installation additionally
+requires `scan_status: COMPLETE`.
 
 ## Why
 
@@ -63,7 +80,7 @@ first, then trust."*
 $ python scripts/scan.py examples/malicious-skill --format text
 
 ================================================================
- skill-auditor v0.8.0 - scan report
+ skill-auditor v0.9.0 - scan report
  target : examples/malicious-skill
  files  : 3 scanned   rules: 59
  totals : 15 CRITICAL  5 WARNING  0 INFO   (6 need semantic review)
@@ -87,15 +104,16 @@ $ python scripts/scan.py examples/malicious-skill --format text
     why: The frontmatter description reads as a benign task, but the body
          performs network, credential, or destructive actions it never mentions.
 
-  ... (17 more findings; all 7 categories hit)
+  ... (17 more findings; all seven fixture categories hit)
 
 ================================================================
  VERDICT: DO NOT INSTALL
 ================================================================
 ```
 
-The clean fixture (`examples/clean-skill/`) reports `0 / 0 / 0` and **SAFE TO
-INSTALL** — no false positives.
+The clean fixture (`examples/clean-skill/`) is expected to report `0 / 0 / 0`
+and **SAFE TO INSTALL**. That fixture is a regression check, not a claim that
+all real-world Skills are free of false positives or false negatives.
 
 <details>
 <summary>More findings from the malicious fixture (20 total)</summary>
@@ -104,7 +122,7 @@ INSTALL** — no false positives.
 $ python scripts/scan.py examples/malicious-skill --format text
 
 ================================================================
- skill-auditor v0.8.0 - scan report
+ skill-auditor v0.9.0 - scan report
  target : examples/malicious-skill
  files  : 3 scanned   rules: 59
  totals : 15 CRITICAL  5 WARNING  0 INFO   (6 need semantic review)
@@ -229,12 +247,21 @@ $ python scripts/scan.py examples/malicious-skill --format text
 
 ### Python package
 
-Python 3.9 or newer:
+After v0.9.0 is published, the default installation path is the exact PyPI
+version, not a mutable source branch:
+
+```bash
+python -m pip install skill-auditor==0.9.0
+```
+
+Until that release exists, do not treat the published v0.8.0 package as carrying
+these security fixes. To test the unreleased v0.9.0 development tree, use Python
+3.9 or newer and install this reviewed checkout:
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install "skill-auditor==0.8.0"
+python -m pip install .
 skill-auditor --version
 skill-auditor examples/clean-skill --format text
 ```
@@ -257,38 +284,42 @@ python -m pytest
 ```powershell
 py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install "skill-auditor==0.8.0"
+python -m pip install .
 skill-auditor --version
 skill-auditor .\examples\clean-skill --format json
 ```
 
-To install the Agent Skill itself into the known Claude Code, Codex, and Agent
-skill directories:
+After v0.9.0 is published, install the Agent Skill only from its reviewed release
+commit (replace the placeholder with the full commit SHA):
 
 ```powershell
+git clone https://github.com/22WELTYANG/skill-auditor.git
+Set-Location skill-auditor
+git checkout --detach <REVIEWED_V0_9_0_COMMIT_SHA>
 .\install.ps1
 # If local policy blocks scripts:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-### Shell installer
+### Agent Skill from a fixed release
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/22WELTYANG/skill-auditor/main/install.sh | bash
-```
-
-Prefer to read before piping a stranger's installer into your shell (you're here
-for a reason)? Clone and run it locally:
+After v0.9.0 is published, review the installer in its fixed commit checkout
+before running it locally:
 
 ```bash
 git clone https://github.com/22WELTYANG/skill-auditor.git
 cd skill-auditor
+git checkout --detach <REVIEWED_V0_9_0_COMMIT_SHA>
 bash install.sh
 ```
 
-The installer copies the skill into `~/.claude/skills` and `~/.codex/skills`
-(and `~/.cursor/skills` if present). Requires Python 3.9+ at scan time; PyYAML is
-optional (a built-in fallback parser is used if it's absent).
+The installer prefers `$CODEX_HOME/skills` when `CODEX_HOME` is set, while
+retaining the supported Claude Code, Codex, Agent, and Cursor compatibility
+locations without duplicate installs. Use `SKILLS_DIR=/path bash install.sh` to
+select one destination. Python 3.9+ is required at scan time; PyYAML is optional
+because the supported YAML subset has a built-in parser. Before copying, the
+installer verifies the Git-tracked allowlist against
+`skill-auditor-payload.json`, which pins each payload path, size, and SHA-256.
 
 ---
 
@@ -297,20 +328,36 @@ optional (a built-in fallback parser is used if it's absent).
 Run the scanner against a local directory, supported zip/tar archive, or GitHub URL:
 
 ```bash
-skill-auditor ./path/to/skill --format text
-skill-auditor ./path/to/skill.zip --format json
-skill-auditor https://github.com/someone/skill --format text
+skill-auditor scan ./path/to/skill --format text
+skill-auditor scan ./path/to/skill.zip --format json
+skill-auditor scan https://github.com/someone/skill --ref <REV> --format text
 python -m skill_auditor ./path/to/skill
 python scripts/scan.py ./path/to/skill  # backward compatible
 ```
 
-Add `--format json` for machine-readable output. Exit code is the verdict:
-`0` safe · `1` review · `2` do-not-install · `3` scan error.
+The bare target, module, and script forms remain backward compatible. JSON uses
+the [`skill-auditor-report/v1` schema](schemas/skill-auditor-report-v1.schema.json)
+and includes `scan_status`, immutable
+`source` identity, and `coverage`. Machine formats write only their document to
+stdout; operational messages go to stderr. Legacy finding aliases remain in
+v0.9.0 with deprecation notices and are scheduled for removal in v1.0.
 
 Suppressions are never trusted from the scanned skill. Pass a reviewer-owned
 configuration outside the target with `--config /trusted/auditor.yml`.
 `--min-severity` only filters displayed findings; verdicts and exit codes always
 use the complete result set.
+
+Reviewer-owned binary exemptions use `trusted_assets`, and every entry must pin
+both its target-relative `path` and `sha256`. They are omitted from an install:
+
+```yaml
+trusted_assets:
+  - path: assets/logo.png
+    sha256: <64-lowercase-hex-characters>
+```
+
+Custom rule directories fail closed when empty or malformed, or when a rule has
+an unknown `check`, unsupported field type, or unsupported YAML construct.
 
 Through your agent it's even simpler — just ask *"is this skill safe to
 install?"* and the skill triggers automatically, adding the semantic layer below.
@@ -328,20 +375,26 @@ permissions:
   actions: read
 
 steps:
-  - uses: actions/checkout@v6
+  - uses: actions/checkout@<FULL_COMMIT_SHA> # pin the reviewed checkout release
     with:
       fetch-depth: 0
-  - uses: 22WELTYANG/skill-auditor@v0.8.0
+      persist-credentials: false
+  - uses: 22WELTYANG/skill-auditor@<REVIEWED_V0_9_0_COMMIT_SHA>
     with:
       path: .
       recursive: "true"
       baseline: auto
+      artifact-name: skill-auditor-report
+      sarif-category: skill-auditor
 ```
 
 The Action uploads SARIF before applying the scan exit-code gate. On pull
 requests, suppression config and automatic baseline data are read from the base
-commit, never from the untrusted PR head. `@v0` is the rolling compatible tag;
-pin an exact release for reproducible audits.
+commit, never from the untrusted PR head. After the release, prefer its full
+commit SHA over a movable major tag for reproducible audits. Customize
+`artifact-name` when one job runs multiple scans and `sarif-category` when the
+Code Scanning analyses need distinct identities. Invalid inputs return
+`verdict=ERROR` and exit code `3` without a traceback.
 
 ```bash
 skill-auditor scan . --recursive --source-root . --format sarif --output audit.sarif
@@ -354,20 +407,23 @@ skill-auditor lock verify ./skills/demo --lock skill-auditor.lock
 Optional semantic review supports OpenAI-compatible APIs and Ollama:
 
 ```bash
-OPENAI_API_KEY=... skill-auditor ./skill --semantic api --semantic-model gpt-4.1-mini
-skill-auditor ./skill --semantic local --semantic-model qwen2.5:7b
+OPENAI_API_KEY=... skill-auditor scan ./skill --semantic api --semantic-model gpt-4.1-mini
+skill-auditor scan ./skill --semantic local --semantic-model qwen2.5:7b
 ```
 
-Only high-confidence benign decisions can resolve semantic pre-filters.
-Deterministic findings, uncertain decisions, invalid responses, and provider
-failures retain their original gate behavior.
+Semantic decisions are advisory by default and cannot remove findings. The
+report records the effective requested model after CLI/environment resolution,
+base URL, prompt version, and effect. Use
+`--semantic-effect dismiss` only as an explicit reviewer policy; deterministic
+findings, uncertain decisions, invalid responses, and provider failures retain
+their original gate behavior.
 
 For pre-commit:
 
 ```yaml
 repos:
   - repo: https://github.com/22WELTYANG/skill-auditor
-    rev: v0.8.0
+    rev: <REVIEWED_V0_9_0_COMMIT_SHA>
     hooks:
       - id: skill-auditor
 ```
@@ -384,12 +440,21 @@ See [CI and trust infrastructure](docs/ci-ecosystem.md) and the
 Two layers, one report, one verdict:
 
 - **Deterministic layer** — [`scripts/scan.py`](scripts/scan.py) loads every rule
-  from [`rules/*.yaml`](rules/) and pattern-matches each `SKILL.md`, reference,
-  and script. Fast, repeatable, exact `file:line` hits.
+  from [`rules/*.yaml`](rules/). Every target path is either scanned as
+  size-limited, decodable text or recorded with an explicit disposition.
+  Content that cannot be inspected makes the scan incomplete instead of
+  silently passing. Policy- or reviewer-excluded content has an explicit,
+  hashed disposition and is never installed.
 - **Semantic layer** — [`SKILL.md`](SKILL.md) drives the agent to read the
   pre-filtered spots (`~semantic`) and judge *intent*: disguised purpose, social
   engineering aimed at the agent, trigger-gated payloads that regex alone can't
   settle.
+
+The same manifest drives scanning, the content hash, cache lookup, reports, and
+the install payload. Changes detected while capturing the snapshot are errors;
+later source changes cannot alter the captured install bytes. Filesystem
+boundary and archive-integrity checks are engine invariants and cannot be
+removed by supplying a custom rule catalog.
 
 Because `SKILL.md` + YAML frontmatter is the shared format across **Claude
 Code**, **Codex**, and **Cursor**, one auditor covers all three.
@@ -464,8 +529,9 @@ no code change needed:
    at zero findings, and verifies the catalog is in sync — the same checks CI runs.
 4. Open a PR describing the real-world attack it defends against.
 
-**Design rule:** a false positive costs a second look; a false negative costs a
-breach. When in doubt, catch it.
+**Design rule:** prefer reviewable evidence and measure both false positives and
+false negatives against a frozen, human-labeled corpus before making quality
+claims.
 
 ---
 

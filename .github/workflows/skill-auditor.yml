@@ -6,22 +6,103 @@ on:
   pull_request:
     branches: ["main"]
 
-permissions:
-  contents: read
-  security-events: write
-  actions: read
+permissions: {}
 
 jobs:
-  audit:
+  smoke:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: ./
         with:
           path: examples/clean-skill
           recursive: "false"
           baseline: auto
-          upload-sarif: "true"
-          upload-report: "true"
+          artifact-name: skill-auditor-smoke-${{ github.run_id }}
+          sarif-category: skill-auditor-smoke
+
+  dogfood:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./
+        with:
+          path: .
+          recursive: "false"
+          config: .github/skill-auditor-dogfood.yml
+          baseline: auto
+          artifact-name: skill-auditor-dogfood-${{ github.run_id }}
+          sarif-category: skill-auditor-dogfood
+
+  action-contracts:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: First clean invocation
+        id: clean-one
+        uses: ./
+        with:
+          path: examples/clean-skill
+          recursive: "false"
+          baseline: auto
+          upload-sarif: "false"
+          upload-report: "false"
+      - name: Second clean invocation in the same job
+        id: clean-two
+        uses: ./
+        with:
+          path: examples/clean-skill
+          recursive: "false"
+          baseline: none
+          upload-sarif: "false"
+          upload-report: "false"
+      - name: Malicious fixture must fail with exit code 2
+        id: malicious
+        continue-on-error: true
+        uses: ./
+        with:
+          path: examples/malicious-skill
+          recursive: "false"
+          baseline: none
+          upload-sarif: "false"
+          upload-report: "false"
+      - name: Invalid input must fail closed with exit code 3
+        id: invalid
+        continue-on-error: true
+        uses: ./
+        with:
+          path: examples/clean-skill
+          recursive: invalid
+          upload-sarif: "false"
+          upload-report: "false"
+      - name: Assert Action outputs
+        shell: bash
+        env:
+          CLEAN_ONE: ${{ steps.clean-one.outputs.exit-code }}
+          CLEAN_TWO: ${{ steps.clean-two.outputs.exit-code }}
+          MALICIOUS: ${{ steps.malicious.outputs.exit-code }}
+          INVALID: ${{ steps.invalid.outputs.exit-code }}
+        run: |
+          test "$CLEAN_ONE" = 0
+          test "$CLEAN_TWO" = 0
+          test "$MALICIOUS" = 2
+          test "$INVALID" = 3

@@ -4,26 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import re
 from pathlib import Path
 
+from . import manifest as manifest_mod
 from .rules_loader import _STRING_KEYS
 
 SCHEMA_VERSION = 1
-_EXCLUDED_NAMES = {
-    ".git",
-    ".pytest_cache",
-    ".skill-auditor-cache",
-    "__pycache__",
-    "skill-auditor.lock",
-}
-_EXCLUDED_SUFFIXES = {".pyc", ".pyo"}
-_GENERATED_REPORTS = {
-    "skill-auditor.json",
-    "skill-auditor.sarif",
-    "skill-auditor.md",
-}
 
 
 def rules_digest(rules: list[dict]) -> str:
@@ -72,45 +59,18 @@ def artifact_location(
     return _portable(uri), member if separator else None
 
 
-def content_hash(target: Path) -> str:
-    digest = hashlib.sha256()
-    digest.update(f"skill-auditor-content-v{SCHEMA_VERSION}\0".encode())
-    if target.is_file():
-        _hash_file(digest, target, target.name)
-        return digest.hexdigest()
+def content_hash(
+    target: Path,
+    content_manifest: manifest_mod.ContentManifest | None = None,
+) -> str:
+    """Return the identity of the same immutable snapshot used by the scanner."""
 
-    root = target.resolve(strict=True)
-
-    def walk(directory: Path) -> None:
-        entries = sorted(os.scandir(directory), key=lambda item: item.name)
-        for entry in entries:
-            path = Path(entry.path)
-            relative = _portable(path.relative_to(root))
-            if _excluded(path.name):
-                continue
-            if entry.is_symlink():
-                digest.update(b"L\0")
-                digest.update(relative.encode("utf-8", "surrogatepass"))
-                digest.update(b"\0")
-                try:
-                    digest.update(os.readlink(path).encode("utf-8", "surrogatepass"))
-                except OSError as exc:
-                    digest.update(str(exc).encode("utf-8", "replace"))
-                digest.update(b"\0")
-            elif entry.is_dir(follow_symlinks=False):
-                digest.update(b"D\0")
-                digest.update(relative.encode("utf-8", "surrogatepass"))
-                digest.update(b"\0")
-                walk(path)
-            elif entry.is_file(follow_symlinks=False):
-                _hash_file(digest, path, relative)
-            else:
-                digest.update(b"O\0")
-                digest.update(relative.encode("utf-8", "surrogatepass"))
-                digest.update(b"\0")
-
-    walk(root)
-    return digest.hexdigest()
+    if content_manifest is not None:
+        return content_manifest.digest
+    return manifest_mod.build(
+        target,
+        archive_target=target.is_file(),
+    ).digest
 
 
 def report_digest(report: dict) -> str:
@@ -140,24 +100,6 @@ def aggregate_content_hash(reports: list[dict]) -> str:
         for report in sorted(reports, key=lambda item: str(item.get("target", "")))
     ]
     return _sha256(_json_bytes(payload))
-
-
-def _hash_file(digest, path: Path, relative: str) -> None:
-    digest.update(b"F\0")
-    digest.update(_portable(relative).encode("utf-8", "surrogatepass"))
-    digest.update(b"\0")
-    with path.open("rb") as handle:
-        while chunk := handle.read(1024 * 1024):
-            digest.update(chunk)
-    digest.update(b"\0")
-
-
-def _excluded(name: str) -> bool:
-    return (
-        name in _EXCLUDED_NAMES
-        or name in _GENERATED_REPORTS
-        or Path(name).suffix.lower() in _EXCLUDED_SUFFIXES
-    )
 
 
 def _normalize_evidence(value: str) -> str:

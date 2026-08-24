@@ -29,6 +29,12 @@ inputs:
   upload-report:
     description: Upload JSON and SARIF workflow artifacts.
     default: "true"
+  artifact-name:
+    description: Name of the uploaded JSON and SARIF artifact.
+    default: skill-auditor-report
+  sarif-category:
+    description: GitHub Code Scanning category for the SARIF upload.
+    default: skill-auditor
 outputs:
   verdict:
     value: ${{ steps.scan.outputs.verdict }}
@@ -49,7 +55,7 @@ outputs:
 runs:
   using: composite
   steps:
-    - uses: actions/setup-python@v6
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
       with:
         python-version: "3.12"
     - name: Install skill-auditor
@@ -65,24 +71,34 @@ runs:
         INPUT_MIN_SEVERITY: ${{ inputs['min-severity'] }}
         INPUT_CONFIG: ${{ inputs.config }}
         INPUT_BASELINE: ${{ inputs.baseline }}
+        INPUT_UPLOAD_SARIF: ${{ inputs['upload-sarif'] }}
+        INPUT_UPLOAD_REPORT: ${{ inputs['upload-report'] }}
+        INPUT_ARTIFACT_NAME: ${{ inputs['artifact-name'] }}
+        INPUT_SARIF_CATEGORY: ${{ inputs['sarif-category'] }}
       run: python -m skill_auditor.action_runner
     - name: Upload SARIF
-      if: ${{ inputs['upload-sarif'] == 'true' && always() }}
+      if: ${{ inputs['upload-sarif'] == 'true' && always() && steps.scan.outputs['sarif-file'] != '' }}
       continue-on-error: true
-      uses: github/codeql-action/upload-sarif@v4
+      uses: github/codeql-action/upload-sarif@37f2634a92ba38a0926ef79a0748ac8ae7d95ab2 # v4.37.8
       with:
         sarif_file: ${{ steps.scan.outputs['sarif-file'] }}
-        category: skill-auditor
+        category: ${{ inputs['sarif-category'] }}
     - name: Upload audit reports
-      if: ${{ inputs['upload-report'] == 'true' && always() }}
+      if: ${{ inputs['upload-report'] == 'true' && always() && steps.scan.outputs['json-file'] != '' && steps.scan.outputs['sarif-file'] != '' }}
       continue-on-error: true
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
-        name: skill-auditor-report
+        name: ${{ inputs['artifact-name'] }}
         path: |
           ${{ steps.scan.outputs['json-file'] }}
           ${{ steps.scan.outputs['sarif-file'] }}
     - name: Apply scan gate
       if: ${{ always() }}
       shell: bash
-      run: exit "${{ steps.scan.outputs['exit-code'] }}"
+      env:
+        SCAN_EXIT_CODE: ${{ steps.scan.outputs['exit-code'] }}
+      run: |
+        case "$SCAN_EXIT_CODE" in
+          0|1|2|3) exit "$SCAN_EXIT_CODE" ;;
+          *) exit 3 ;;
+        esac

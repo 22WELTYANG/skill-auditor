@@ -1,5 +1,9 @@
 # Public Skill corpus methodology
 
+This document defines the planned reproducible method; it is not a published
+precision result. Do not claim corpus prevalence, per-rule precision, or
+reviewer agreement until a frozen snapshot and completed labels are released.
+
 The scheduled research workflow discovers at least 500 public repositories,
 pins their default-branch commit SHA and license metadata, and downloads
 read-only GitHub tarballs. It never executes repository hooks, installers, or

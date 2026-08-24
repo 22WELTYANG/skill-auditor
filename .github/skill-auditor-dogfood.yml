@@ -1,0 +1,45 @@
+# This trusted CI policy excludes intentionally hostile test and rule corpus,
+# plus local/build state that is never part of the published payload.
+ignore_paths:
+  - .agents/**
+  - .pytest-tmp/**
+  - .pytest_cache/**
+  - .venv/**
+  - build/**
+  - dist/**
+  - venv/**
+  # These files deliberately embed the malicious regression/report corpus.
+  - README.md
+  - README.zh-CN.md
+  - scripts/run_tests.py
+  - tests/**
+  - examples/**
+  - rules/**
+  - src/skill_auditor/rules/**
+  - references/risk-patterns.md
+
+# The implementation necessarily contains the exact detector strings below.
+# Keep every exception scoped to both one rule and one reviewed source file.
+suppress:
+  - rule: SHELL-002
+    path: src/skill_auditor/scanner.py
+  - rule: PYEXFIL-001
+    path: src/skill_auditor/semantic.py
+  - rule: MCP-002
+    path: src/skill_auditor/analyzers.py
+  - rule: MISMATCH-001
+    path: SKILL.md
+  - rule: GITHOOK-002
+    path: src/skill_auditor/archives.py
+  - rule: LOGICBOMB-001
+    path: src/skill_auditor/target.py
+  - rule: MCP-001
+    path: src/skill_auditor/analyzers.py
+  - rule: SHELL-001
+    path: .github/workflows/python-checks.yml
+  - rule: SHELL-001
+    path: .github/workflows/release.yml
+  - rule: CRED-006
+    path: scripts/research_corpus.py
+  - rule: PYEXFIL-001
+    path: scripts/research_corpus.py

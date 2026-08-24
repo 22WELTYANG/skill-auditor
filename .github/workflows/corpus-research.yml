@@ -17,8 +17,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 240
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.12"
       - name: Install scanner
@@ -37,7 +39,7 @@ jobs:
         run: |
           python scripts/research_corpus.py stats --results corpus-results.json --output corpus-statistics.json
           python scripts/research_corpus.py sample --results corpus-results.json --size 1000 --double-review 0.20 --output corpus-label-sample.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: public-skill-corpus-${{ github.run_id }}
           retention-days: 90

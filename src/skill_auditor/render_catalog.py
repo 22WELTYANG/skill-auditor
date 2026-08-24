@@ -101,7 +101,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.rules_dir:
         rules = rl.load_rules(args.rules_dir)
     elif repo_layout:
-        rules = rl.load_rules(RULES_SOURCE)
+        rules = rl.load_rules(RULES_SOURCE, trusted_engine_catalog=True)
     else:
         rules = rl.load_rules()
     content = render(rules)
@@ -119,4 +119,3 @@ def main(argv: list[str] | None = None) -> int:
     OUTPUT.write_text(content, encoding="utf-8")
     print(f"wrote {OUTPUT}")
     return 0
-

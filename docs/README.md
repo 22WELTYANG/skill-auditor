@@ -1,6 +1,10 @@
-# docs/
+# Documentation
 
-Demo assets for the main README live here.
+- [CI and trust infrastructure](ci-ecosystem.md) ·
+  [简体中文](ci-ecosystem.zh-CN.md)
+- [Public Skill corpus methodology](research-methodology.md)
+- [Public research report template](research-report-template.md)
+- Demo recording instructions below
 
 ## Regenerating `demo.gif`
 

@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/22WELTYANG/skill-auditor/blob/main/schemas/skill-auditor-report-v1.schema.json",
+  "title": "skill-auditor report v1",
+  "type": "object",
+  "required": [
+    "schema",
+    "tool",
+    "version",
+    "target",
+    "scan_status",
+    "source",
+    "coverage",
+    "deprecations",
+    "rules_loaded",
+    "rules_digest",
+    "config_digest",
+    "semantic",
+    "baseline",
+    "scanned_files",
+    "scan_diagnostics",
+    "summary",
+    "gate_summary",
+    "findings",
+    "verdict",
+    "exit_code"
+  ],
+  "properties": {
+    "schema": { "const": "skill-auditor-report/v1" },
+    "tool": { "const": "skill-auditor" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+].*)?$" },
+    "target": { "type": "string" },
+    "scan_status": { "enum": ["COMPLETE", "INCOMPLETE"] },
+    "source": { "$ref": "#/$defs/source" },
+    "coverage": { "$ref": "#/$defs/coverage" },
+    "deprecations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/deprecation" },
+      "uniqueItems": true
+    },
+    "recursive": { "type": "boolean" },
+    "skill_name": { "type": ["string", "null"] },
+    "rules_loaded": { "type": "integer", "minimum": 1 },
+    "rules_digest": { "$ref": "#/$defs/sha256" },
+    "config_source": { "type": ["string", "null"] },
+    "config_digest": { "$ref": "#/$defs/sha256" },
+    "source_root": { "type": ["string", "null"] },
+    "skill_root": { "type": "string" },
+    "automation_id": { "type": "string" },
+    "content_hash": { "$ref": "#/$defs/sha256" },
+    "fail_on": { "enum": ["CRITICAL", "WARNING", "INFO", "critical", "warning", "info"] },
+    "min_severity": { "enum": ["CRITICAL", "WARNING", "INFO", "critical", "warning", "info"] },
+    "semantic": { "$ref": "#/$defs/semanticPolicy" },
+    "baseline": { "$ref": "#/$defs/baseline" },
+    "scanned_files": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "scan_diagnostics": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/diagnostic" }
+    },
+    "summary": { "$ref": "#/$defs/summary" },
+    "gate_summary": { "$ref": "#/$defs/summary" },
+    "detected_summary": { "$ref": "#/$defs/summary" },
+    "display_summary": { "$ref": "#/$defs/summary" },
+    "all_findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    },
+    "suppressed": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    },
+    "reports": {
+      "type": "array",
+      "items": { "$ref": "#" }
+    },
+    "verdict": { "enum": ["SAFE_TO_INSTALL", "REVIEW_BEFORE_INSTALL", "DO_NOT_INSTALL", "ERROR"] },
+    "verdict_label": { "type": "string" },
+    "full_verdict": { "enum": ["SAFE_TO_INSTALL", "REVIEW_BEFORE_INSTALL", "DO_NOT_INSTALL", "ERROR"] },
+    "full_verdict_label": { "type": "string" },
+    "exit_code": { "enum": [0, 1, 2, 3] }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "scan_status": { "const": "INCOMPLETE" } }, "required": ["scan_status"] },
+      "then": {
+        "properties": {
+          "verdict": { "const": "ERROR" },
+          "exit_code": { "const": 3 }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "recursive": { "const": true } }, "required": ["recursive"] },
+      "then": { "required": ["reports"] }
+    }
+  ],
+  "additionalProperties": true,
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "source": {
+      "type": "object",
+      "required": ["kind", "content_hash"],
+      "properties": {
+        "kind": { "enum": ["local", "archive", "git"] },
+        "path": { "type": "string" },
+        "repository": { "type": "string" },
+        "requested_ref": { "type": "string" },
+        "resolved_commit": { "type": "string", "pattern": "^[0-9a-f]{40,64}$" },
+        "skill_root": { "type": "string" },
+        "content_hash": { "$ref": "#/$defs/sha256" }
+      },
+      "additionalProperties": true
+    },
+    "coverage": {
+      "type": "object",
+      "oneOf": [
+        {
+          "required": ["manifest_schema", "entries", "dispositions", "incomplete", "scanned_files"],
+          "properties": {
+            "manifest_schema": { "type": "string" },
+            "entries": { "type": "integer", "minimum": 0 },
+            "dispositions": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
+            "excluded": { "type": "array", "items": { "type": "string" } },
+            "trusted_binary_assets": { "type": "array", "items": { "type": "string" } },
+            "incomplete": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } },
+            "scanned_files": { "type": "integer", "minimum": 0 },
+            "archive_members_scanned": { "type": "integer", "minimum": 0 }
+          }
+        },
+        {
+          "required": ["skills", "complete", "incomplete"],
+          "properties": {
+            "skills": { "type": "integer", "minimum": 1 },
+            "complete": { "type": "integer", "minimum": 0 },
+            "incomplete": { "type": "integer", "minimum": 0 }
+          }
+        }
+      ],
+      "additionalProperties": true
+    },
+    "deprecation": {
+      "type": "object",
+      "required": ["legacy", "replacement", "remove_in"],
+      "properties": {
+        "legacy": { "type": "string" },
+        "replacement": { "type": "string" },
+        "remove_in": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "required": ["CRITICAL", "WARNING", "INFO", "total", "needs_semantic_review", "suppressed"],
+      "properties": {
+        "CRITICAL": { "type": "integer", "minimum": 0 },
+        "WARNING": { "type": "integer", "minimum": 0 },
+        "INFO": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 0 },
+        "needs_semantic_review": { "type": "integer", "minimum": 0 },
+        "suppressed": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "semanticPolicy": {
+      "type": "object",
+      "required": ["mode", "model", "base_url", "prompt_version", "min_confidence", "effect"],
+      "properties": {
+        "mode": { "enum": ["off", "api", "local"] },
+        "model": { "type": ["string", "null"] },
+        "base_url": { "type": ["string", "null"] },
+        "prompt_version": { "type": "string" },
+        "min_confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "effect": { "enum": ["advisory", "dismiss"] }
+      },
+      "additionalProperties": false
+    },
+    "baseline": {
+      "type": "object",
+      "required": ["enabled", "source", "tool_version", "rules_digest", "rules_match"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "source": { "type": ["string", "null"] },
+        "report_schema": {
+          "enum": ["skill-auditor-report/v1", null]
+        },
+        "scan_status": { "enum": ["COMPLETE", "INCOMPLETE", null] },
+        "report_source": {
+          "anyOf": [{ "$ref": "#/$defs/source" }, { "type": "null" }]
+        },
+        "coverage": {
+          "anyOf": [{ "$ref": "#/$defs/coverage" }, { "type": "null" }]
+        },
+        "semantic": {
+          "anyOf": [{ "$ref": "#/$defs/semanticPolicy" }, { "type": "null" }]
+        },
+        "tool_version": { "type": ["string", "null"] },
+        "rules_digest": {
+          "anyOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }]
+        },
+        "rules_match": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "diagnostic": {
+      "type": "object",
+      "required": ["path", "message"],
+      "properties": {
+        "path": { "type": "string" },
+        "message": { "type": "string" },
+        "code": { "type": ["string", "null"] },
+        "blocking": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "finding": {
+      "type": "object",
+      "required": [
+        "id",
+        "rule_id",
+        "category",
+        "severity",
+        "layer",
+        "file",
+        "line",
+        "snippet",
+        "explanation",
+        "rationale",
+        "recommendation",
+        "guidance",
+        "needs_semantic_review",
+        "confidence",
+        "suppressed"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "rule_id": { "type": "string" },
+        "category": { "type": "string" },
+        "severity": { "enum": ["CRITICAL", "WARNING", "INFO"] },
+        "layer": { "enum": ["deterministic", "heuristic", "semantic"] },
+        "file": { "type": "string" },
+        "artifact_uri": { "type": "string" },
+        "archive_member": { "type": ["string", "null"] },
+        "line": { "type": "integer", "minimum": 1 },
+        "snippet": { "type": "string" },
+        "explanation": { "type": "string" },
+        "rationale": { "type": "string" },
+        "recommendation": { "type": "string" },
+        "guidance": { "type": "string" },
+        "needs_semantic_review": { "type": "boolean" },
+        "confidence": { "enum": ["low", "medium", "high"] },
+        "suppressed": { "type": "boolean" },
+        "suppressed_reason": { "type": ["string", "null"] },
+        "semantic_resolved": { "type": "boolean" },
+        "fingerprint": { "$ref": "#/$defs/sha256" },
+        "new": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

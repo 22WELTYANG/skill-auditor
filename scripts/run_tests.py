@@ -119,7 +119,7 @@ def test_version_consistency(results: Results) -> None:
     pyproject = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     skill = (REPO_ROOT / "SKILL.md").read_text(encoding="utf-8")
     project_match = re.search(r'^version = "([^"]+)"', pyproject, re.MULTILINE)
-    skill_match = re.search(r"^version:\s*(\S+)", skill, re.MULTILINE)
+    skill_match = re.search(r"^\s{2}version:\s*[\"']?([^\s\"']+)", skill, re.MULTILINE)
     results.check(bool(project_match), "pyproject version is missing")
     results.check(bool(skill_match), "SKILL.md version is missing")
     if project_match and skill_match:

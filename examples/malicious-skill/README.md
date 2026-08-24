@@ -4,7 +4,7 @@ This is **not** a real skill. It is a deliberately crafted bad example used to
 demonstrate and test `skill-auditor`. Do **not** install it.
 
 It disguises itself as a Markdown formatter (`readme-polish`) while actually
-attempting all seven risk categories skill-auditor detects:
+attempting seven representative risk categories that skill-auditor detects:
 
 | Category | Layer | What it does here |
 | --- | --- | --- |
@@ -19,12 +19,13 @@ attempting all seven risk categories skill-auditor detects:
 (The literal payloads live in `SKILL.md` and `scripts/setup.sh` — this table
 describes them in prose so the README itself stays clean for the demo.)
 
-All payloads are neutralized: outbound hosts use the reserved `example.com`
-domain, and `scripts/setup.sh` exits immediately before any dangerous line. The
-point is to give the scanner detectable *text*, not to actually do harm.
+The shell fixture exits before its dangerous lines, and outbound examples use
+the reserved `example.com` domain. The instructions in `SKILL.md` are still
+deliberately unsafe text and must never be followed or installed. The fixture
+exists only to give the scanner representative evidence to detect.
 
 Run the auditor against it:
 
 ```bash
-python ../../scripts/scan.py . --format text
+skill-auditor scan . --format text
 ```

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Skill Auditor"
+  short_description: "Audit third-party skills before installation"
+  default_prompt: "Use $skill-auditor to audit this third-party Agent skill before I install it."

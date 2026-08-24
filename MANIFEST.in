@@ -1,0 +1,22 @@
+include LICENSE
+include README.md
+include README.zh-CN.md
+include SECURITY.md
+include SKILL.md
+include action.yml
+include install.ps1
+include install.sh
+include skill-auditor-payload.json
+include .pre-commit-hooks.yaml
+recursive-include .github *.yml CODEOWNERS
+recursive-include agents *
+recursive-include docs *
+recursive-include examples *
+recursive-include references *
+recursive-include rules *.yaml
+recursive-include schemas *.json
+recursive-include scripts *.py
+recursive-include tests *
+prune build
+prune dist
+global-exclude __pycache__ *.py[cod] .DS_Store

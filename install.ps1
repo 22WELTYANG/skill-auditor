@@ -1,65 +1,49 @@
 [CmdletBinding()]
-param(
-    [string]$SkillsDir,
-    [string]$Repository = "https://github.com/22WELTYANG/skill-auditor"
-)
+param([string]$SkillsDir)
 
 $ErrorActionPreference = "Stop"
-$SkillName = "skill-auditor"
-$Cleanup = $null
+$PreviousPythonPath = $env:PYTHONPATH
 
 try {
     $Source = $PSScriptRoot
     if (-not (Test-Path -LiteralPath (Join-Path $Source "SKILL.md") -PathType Leaf)) {
-        if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-            throw "git is required when install.ps1 is not run from a local checkout"
-        }
-        $Cleanup = Join-Path ([IO.Path]::GetTempPath()) ("skill-auditor-" + [guid]::NewGuid())
-        git clone --depth 1 $Repository $Cleanup | Out-Null
-        $Source = $Cleanup
+        [Console]::Error.WriteLine("install error: run this from a reviewed fixed checkout")
+        exit 3
     }
 
+    $Python = Get-Command python3 -ErrorAction SilentlyContinue
+    if (-not $Python) {
+        $Python = Get-Command python -ErrorAction SilentlyContinue
+    }
+    $UseLauncher = $false
+    if (-not $Python) {
+        $Python = Get-Command py -ErrorAction SilentlyContinue
+        $UseLauncher = [bool]$Python
+    }
+    if (-not $Python) {
+        [Console]::Error.WriteLine("install error: Python 3.9 or newer is required")
+        exit 3
+    }
+
+    $env:PYTHONPATH = (Join-Path $Source "src")
+    if ($PreviousPythonPath) {
+        $env:PYTHONPATH += [IO.Path]::PathSeparator + $PreviousPythonPath
+    }
+    $Arguments = @("-m", "skill_auditor.installer", "--source", $Source)
     if ($SkillsDir) {
-        $Targets = @([IO.Path]::GetFullPath($SkillsDir))
-    } else {
-        $Targets = @(
-            (Join-Path $HOME ".claude\skills"),
-            (Join-Path $HOME ".codex\skills"),
-            (Join-Path $HOME ".agents\skills")
-        )
-        if (Test-Path -LiteralPath (Join-Path $HOME ".cursor") -PathType Container) {
-            $Targets += Join-Path $HOME ".cursor\skills"
-        }
+        $Arguments += @("--skills-dir", $SkillsDir)
     }
-
-    foreach ($Parent in $Targets) {
-        New-Item -ItemType Directory -Force -Path $Parent | Out-Null
-        $Destination = Join-Path ([IO.Path]::GetFullPath($Parent)) $SkillName
-        $Staging = Join-Path $Parent (".$SkillName.staging-" + [guid]::NewGuid())
-        $Backup = Join-Path $Parent (".$SkillName.backup-" + [guid]::NewGuid())
-        New-Item -ItemType Directory -Path $Staging | Out-Null
-        foreach ($Item in @("SKILL.md", "scripts", "src", "rules", "references", "pyproject.toml")) {
-            Copy-Item -LiteralPath (Join-Path $Source $Item) -Destination $Staging -Recurse -Force
-        }
-        if (Test-Path -LiteralPath $Destination) {
-            Move-Item -LiteralPath $Destination -Destination $Backup
-        }
-        try {
-            Move-Item -LiteralPath $Staging -Destination $Destination
-            if (Test-Path -LiteralPath $Backup) {
-                Remove-Item -LiteralPath $Backup -Recurse -Force
-            }
-        } catch {
-            if ((Test-Path -LiteralPath $Backup) -and -not (Test-Path -LiteralPath $Destination)) {
-                Move-Item -LiteralPath $Backup -Destination $Destination
-            }
-            throw
-        }
-        Write-Host "Installed to $Destination"
+    if ($UseLauncher) {
+        $Arguments = @("-3") + $Arguments
     }
+    & $Python.Source @Arguments
+    if ($LASTEXITCODE -eq 0) {
+        exit 0
+    }
+    exit 3
+} catch {
+    [Console]::Error.WriteLine("install error: installation failed")
+    exit 3
 } finally {
-    if ($Cleanup -and (Test-Path -LiteralPath $Cleanup)) {
-        Remove-Item -LiteralPath $Cleanup -Recurse -Force
-    }
+    $env:PYTHONPATH = $PreviousPythonPath
 }
-

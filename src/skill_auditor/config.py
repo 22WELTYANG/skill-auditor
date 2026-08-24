@@ -5,22 +5,21 @@ from __future__ import annotations
 import fnmatch
 import re
 from pathlib import Path
-
-try:
-    import yaml  # type: ignore
-
-    def _load_yaml(text: str):
-        return yaml.safe_load(text)
-except ImportError:  # pragma: no cover
-    yaml = None
-
-    def _load_yaml(text: str):
-        return _mini_yaml(text)
-
+from pathlib import PurePosixPath
 
 CONFIG_FILENAMES = (".skill-auditor.yml", ".skill-auditor.yaml")
 _DOMAIN_RE = re.compile(r"https?://([^/\s'\"]+)", re.IGNORECASE)
 _ALLOWLISTABLE_RULES = {"EXFIL-001"}
+_TOP_LEVEL_KEYS = {"allow_domains", "suppress", "ignore_paths", "trusted_assets"}
+_BIDI_AND_CONTROL_RE = re.compile(
+    r"[\x00-\x1f\x7f-\x9f\u202a-\u202e\u2066-\u2069\ud800-\udfff]"
+)
+_SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
+_WINDOWS_RESERVED = {
+    "CON", "PRN", "AUX", "NUL",
+    *(f"COM{number}" for number in range(1, 10)),
+    *(f"LPT{number}" for number in range(1, 10)),
+}
 
 
 class ConfigError(ValueError):
@@ -38,17 +37,56 @@ def _scalar(raw: str):
 
 
 def _mini_yaml(text: str):
+    """Parse the deliberately small, dependency-free trusted-config subset.
+
+    This parser is canonical even when PyYAML is installed.  Unsupported YAML
+    is rejected so policy does not change with the host environment.
+    """
     root: dict = {}
     current_key = ""
     current_item: dict | None = None
-    for raw in text.splitlines():
+    for line_number, raw in enumerate(text.splitlines(), start=1):
         if not raw.strip() or raw.lstrip().startswith("#"):
             continue
+        if "\t" in raw:
+            raise ConfigError(f"line {line_number}: tabs are not supported")
+        if re.search(r"(?:^[- ]*|:\s*)[&*!|>]", raw):
+            raise ConfigError(
+                f"line {line_number}: unsupported YAML feature in trusted config"
+            )
+        indent = len(raw) - len(raw.lstrip(" "))
         line = raw.strip()
+        if indent == 0:
+            match = re.fullmatch(r"([A-Za-z_][\w-]*):\s*(.*)", line)
+            if not match:
+                raise ConfigError(f"line {line_number}: expected a top-level key")
+            key, value = match.group(1), match.group(2).strip()
+            if key not in _TOP_LEVEL_KEYS:
+                raise ConfigError(f"line {line_number}: unknown config key {key!r}")
+            if key in root:
+                raise ConfigError(f"line {line_number}: duplicate config key {key!r}")
+            if value:
+                parsed = _scalar(value)
+                if not isinstance(parsed, list):
+                    raise ConfigError(
+                        f"line {line_number}: {key} must be a list"
+                    )
+                root[key] = parsed
+            else:
+                root[key] = []
+            current_key = key
+            current_item = None
+            continue
+        if not current_key:
+            raise ConfigError(f"line {line_number}: list item has no parent key")
+        if indent < 2:
+            raise ConfigError(f"line {line_number}: invalid indentation")
         if line.startswith("- "):
             value = line[2:].strip()
-            container = root.setdefault(current_key, [])
-            match = re.match(r"^([A-Za-z_][\w-]*):\s*(.*)$", value)
+            if not value:
+                raise ConfigError(f"line {line_number}: empty list item")
+            container = root[current_key]
+            match = re.fullmatch(r"([A-Za-z_][\w-]*):\s*(.*)", value)
             if match and isinstance(container, list):
                 current_item = {match.group(1): _scalar(match.group(2))}
                 container.append(current_item)
@@ -56,21 +94,18 @@ def _mini_yaml(text: str):
                 container.append(_scalar(value))
                 current_item = None
             continue
-        match = re.match(r"^([A-Za-z_][\w-]*):\s*(.*)$", line)
-        if not match:
-            continue
+        match = re.fullmatch(r"([A-Za-z_][\w-]*):\s*(.*)", line)
+        if not match or current_item is None or indent < 4:
+            raise ConfigError(f"line {line_number}: unsupported list structure")
         key, value = match.group(1), match.group(2).strip()
-        if raw.startswith((" ", "\t")) and current_item is not None:
-            current_item[key] = _scalar(value)
-        elif value:
-            root[key] = _scalar(value)
-            current_key = key
-            current_item = None
-        else:
-            root[key] = []
-            current_key = key
-            current_item = None
+        if key in current_item:
+            raise ConfigError(f"line {line_number}: duplicate entry field {key!r}")
+        current_item[key] = _scalar(value)
     return root
+
+
+def _load_yaml(text: str):
+    return _mini_yaml(text)
 
 
 class Config:
@@ -79,11 +114,13 @@ class Config:
         allow_domains: list[str] | None = None,
         suppress: list[dict] | None = None,
         ignore_paths: list[str] | None = None,
+        trusted_assets: list[dict] | None = None,
         source: str | None = None,
     ) -> None:
         self.allow_domains = {domain.lower() for domain in (allow_domains or [])}
         self.suppress = suppress or []
         self.ignore_paths = ignore_paths or []
+        self.trusted_assets = trusted_assets or []
         self.source = source
 
     def is_ignored_path(self, relative_path: str) -> bool:
@@ -169,6 +206,7 @@ def load_config(config_path: str | Path | None, target_root: Path) -> Config:
         allow_domains=_as_list(data.get("allow_domains")),
         suppress=_as_suppress(data.get("suppress")),
         ignore_paths=_as_list(data.get("ignore_paths")),
+        trusted_assets=_as_trusted_assets(data.get("trusted_assets")),
         source=str(resolved),
     )
 
@@ -179,7 +217,9 @@ def _as_list(value) -> list[str]:
     if isinstance(value, str):
         return [value]
     if isinstance(value, list):
-        return [str(item) for item in value]
+        if not all(isinstance(item, str) for item in value):
+            raise ConfigError("allow_domains and ignore_paths entries must be strings")
+        return value
     raise ConfigError("allow_domains and ignore_paths must be lists")
 
 
@@ -192,5 +232,56 @@ def _as_suppress(value) -> list[dict]:
     for item in value:
         if not isinstance(item, dict):
             raise ConfigError("each suppress entry must be a mapping")
-        output.append({key: str(entry_value) for key, entry_value in item.items()})
+        unknown = set(item) - {"rule", "path"}
+        if unknown:
+            raise ConfigError("suppress entries only support rule and path")
+        if not all(isinstance(entry_value, str) for entry_value in item.values()):
+            raise ConfigError("suppress rule and path must be strings")
+        normalized = {key: entry_value for key, entry_value in item.items()}
+        if not normalized.get("rule") and not normalized.get("path"):
+            raise ConfigError("each suppress entry needs rule or path")
+        output.append(normalized)
+    return output
+
+
+def _as_trusted_assets(value) -> list[dict]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ConfigError("trusted_assets must be a list")
+    output: list[dict] = []
+    seen: set[str] = set()
+    for item in value:
+        if not isinstance(item, dict):
+            raise ConfigError("each trusted_assets entry must be a mapping")
+        if set(item) != {"path", "sha256"}:
+            raise ConfigError("trusted_assets entries require exactly path and sha256")
+        path = item.get("path")
+        digest = item.get("sha256")
+        if not isinstance(path, str) or not isinstance(digest, str):
+            raise ConfigError("trusted asset path and sha256 must be strings")
+        normalized = path.replace("\\", "/").strip()
+        pure = PurePosixPath(normalized)
+        if (
+            not normalized
+            or pure.is_absolute()
+            or normalized.startswith("/")
+            or re.match(r"^[A-Za-z]:", normalized)
+            or any(part in {"", ".", ".."} for part in pure.parts)
+            or any(
+                ":" in part
+                or part.endswith((" ", "."))
+                or part.split(".", 1)[0].upper() in _WINDOWS_RESERVED
+                for part in pure.parts
+            )
+            or _BIDI_AND_CONTROL_RE.search(normalized)
+        ):
+            raise ConfigError("trusted asset path must be a safe relative path")
+        if not _SHA256_RE.fullmatch(digest):
+            raise ConfigError("trusted asset sha256 must contain 64 hexadecimal characters")
+        normalized = pure.as_posix()
+        if normalized in seen:
+            raise ConfigError(f"duplicate trusted asset path: {normalized}")
+        seen.add(normalized)
+        output.append({"path": normalized, "sha256": digest.lower()})
     return output

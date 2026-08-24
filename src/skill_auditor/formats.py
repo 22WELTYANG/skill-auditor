@@ -11,6 +11,7 @@ VERDICT_EMOJI = {
     "DO_NOT_INSTALL": "⛔",
     "REVIEW_BEFORE_INSTALL": "⚠️",
     "SAFE_TO_INSTALL": "✅",
+    "ERROR": "❌",
 }
 _SARIF_LEVEL = {CRITICAL: "error", WARNING: "warning", INFO: "note"}
 
@@ -27,6 +28,9 @@ def render_pretty(report: dict, *, color: bool | None = None, verbose: bool = Fa
         "=" * 64,
         f" skill-auditor v{report['version']} - scan report",
         f" target : {report['target']}",
+        f" status : {report.get('scan_status', 'UNKNOWN')}"
+        f"   source: {_source_label(report.get('source'))}",
+        f" deprecated finding aliases: {_deprecation_notice(report)}",
         f" files  : {len(report['scanned_files'])} scanned   rules: {report['rules_loaded']}",
         f" totals : {styled('1;31', str(summary[CRITICAL]) + ' CRITICAL')}  "
         f"{styled('1;33', str(summary[WARNING]) + ' WARNING')}  "
@@ -85,6 +89,9 @@ def render_markdown(report: dict) -> str:
         f"## {VERDICT_EMOJI.get(report['verdict'], '')} skill-auditor — {report['verdict_label']}",
         "",
         f"**Target:** `{report['target']}`  ",
+        f"**Scan status:** `{report.get('scan_status', 'UNKNOWN')}`  ·  "
+        f"**Source:** `{_source_label(report.get('source'))}`  ",
+        f"**Deprecated finding aliases:** {_deprecation_notice(report)}  ",
         f"**Files scanned:** {len(report['scanned_files'])}  ·  "
         f"**Rules:** {report['rules_loaded']}  ·  **fail-on:** `{report['fail_on']}`",
         "",
@@ -195,6 +202,23 @@ def _build_sarif_run(report: dict, rules: list[dict]) -> dict:
         if finding["rule_id"] in rule_index:
             result["ruleIndex"] = rule_index[finding["rule_id"]]
         results.append(result)
+    status = report.get("scan_status", "UNKNOWN")
+    diagnostics = report.get("scan_diagnostics") or []
+    invocation = {
+        "executionSuccessful": status == "COMPLETE",
+        "exitCode": int(report.get("exit_code", 3 if status != "COMPLETE" else 0)),
+    }
+    if diagnostics:
+        invocation["toolExecutionNotifications"] = [{
+            "level": "error" if item.get("blocking", True) else "warning",
+            "message": {
+                "text": f"{item.get('path', '<target>')}: {item.get('message', 'scan diagnostic')}"
+            },
+            "properties": {
+                "blocking": bool(item.get("blocking", True)),
+                "code": item.get("code"),
+            },
+        } for item in diagnostics]
     return {
         "tool": {"driver": {
             "name": "skill-auditor",
@@ -205,9 +229,39 @@ def _build_sarif_run(report: dict, rules: list[dict]) -> dict:
         "automationDetails": {
             "id": report.get("automation_id") or "skill-auditor/default",
         },
+        "invocations": [invocation],
+        "properties": {
+            "reportSchema": report.get("schema"),
+            "scanStatus": status,
+            "source": report.get("source") or {},
+            "coverage": report.get("coverage") or {},
+            "contentHash": report.get("content_hash"),
+            "deprecations": report.get("deprecations") or [],
+        },
         "results": results,
     }
 
 
 def _pascal(value: str) -> str:
     return "".join(part.capitalize() for part in value.replace("_", "-").split("-"))
+
+
+def _source_label(source: object) -> str:
+    if not isinstance(source, dict):
+        return "unknown"
+    kind = str(source.get("kind") or "unknown")
+    if kind == "git":
+        repository = str(source.get("repository") or "remote")
+        commit = str(source.get("resolved_commit") or "unresolved")
+        return f"git:{repository}@{commit}"
+    return f"{kind}:{source.get('path') or source.get('skill_root') or 'unknown'}"
+
+
+def _deprecation_notice(report: dict) -> str:
+    items = report.get("deprecations") or []
+    rendered = [
+        f"`{item.get('legacy')}` -> `{item.get('replacement')}` (remove in v{item.get('remove_in')})"
+        for item in items
+        if isinstance(item, dict)
+    ]
+    return ", ".join(rendered) if rendered else "none"

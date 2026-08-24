@@ -88,6 +88,28 @@ def test_recursive_display_threshold_does_not_change_gate(tmp_path):
     assert report["exit_code"] == 1
 
 
+def test_recursive_lock_create_and_verify_contract(tmp_path):
+    repo = tmp_path / "repo"
+    first = repo / "skills" / "one"
+    second = repo / "skills" / "two"
+    _skill(first, "one")
+    _skill(second, "two")
+    lock_path = tmp_path / "recursive.lock"
+
+    common = [str(repo), "--recursive", "--no-cache"]
+    assert cli.main(
+        ["lock", "create", *common, "--output", str(lock_path)]
+    ) == 0
+    assert cli.main(
+        ["lock", "verify", *common, "--lock", str(lock_path)]
+    ) == 0
+
+    (second / "notes.md").write_text("changed\n", encoding="utf-8")
+    assert cli.main(
+        ["lock", "verify", *common, "--lock", str(lock_path)]
+    ) == 1
+
+
 def test_baseline_keeps_full_report_but_only_gates_new_findings(tmp_path):
     skill = tmp_path / "skill"
     _skill(skill, "baseline-demo", "chmod 777 first.sh\n")

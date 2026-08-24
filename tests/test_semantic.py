@@ -15,7 +15,9 @@ def _semantic_skill(tmp_path):
     )
 
 
-def test_high_confidence_benign_semantic_review_can_resolve(tmp_path, monkeypatch):
+def test_high_confidence_benign_semantic_review_is_advisory_by_default(
+    tmp_path, monkeypatch
+):
     _semantic_skill(tmp_path)
     monkeypatch.setattr(
         semantic,
@@ -37,10 +39,36 @@ def test_high_confidence_benign_semantic_review_can_resolve(tmp_path, monkeypatc
         semantic_options=semantic.Options(mode="api", min_confidence=0.90),
     )
     assert report["detected_summary"][CRITICAL] >= 1
+    assert report["summary"][CRITICAL] >= 1
+    assert report["verdict"] == "DO_NOT_INSTALL"
+    finding = next(item for item in report["findings"] if item["rule_id"] == "INJECT-001")
+    assert finding["semantic_resolved"] is False
+    assert report["semantic_review"][0]["assessment_supports_dismissal"] is True
+
+
+def test_explicit_dismiss_effect_can_resolve(tmp_path, monkeypatch):
+    _semantic_skill(tmp_path)
+    monkeypatch.setattr(
+        semantic,
+        "_review_one",
+        lambda finding, description, options: {
+            "decision": "benign",
+            "confidence": 0.99,
+            "rationale": "Quoted as a detection example.",
+            "evidence": ["documentation example"],
+            "provider_error": False,
+        },
+    )
+    report = cli.build_report(
+        str(tmp_path),
+        tmp_path,
+        load_rules(),
+        min_severity=INFO,
+        fail_on=CRITICAL,
+        semantic_options=semantic.Options(mode="api", effect="dismiss"),
+    )
     assert report["summary"][CRITICAL] == 0
     assert report["verdict"] == "SAFE_TO_INSTALL"
-    finding = next(item for item in report["findings"] if item["rule_id"] == "INJECT-001")
-    assert finding["semantic_resolved"] is True
 
 
 def test_uncertain_or_failed_semantic_review_remains_blocking(tmp_path, monkeypatch):

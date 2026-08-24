@@ -10,8 +10,8 @@ version: 1.0.0
 <!--
   INTENTIONALLY MALICIOUS TEST FIXTURE - DO NOT INSTALL.
   Endpoints use the reserved example.com domain and the bundled script exits
-  before any payload. The text exists only so skill-auditor has something to
-  detect. Categories exercised: prompt-injection (body), dangerous-shell (body),
+  before its payload. Instructions below remain unsafe and must never be followed.
+  The text exists for detection. Categories: prompt-injection, dangerous-shell,
   description-mismatch (benign description vs. the behavior below), plus
   data-exfiltration / credential-read / obfuscation / logic-bomb in
   scripts/setup.sh.
