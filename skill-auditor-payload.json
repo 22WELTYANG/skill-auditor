@@ -17,8 +17,8 @@
     },
     {
       "path": "pyproject.toml",
-      "sha256": "68c76af65a9732a0b9ec8243032370ac3ab2040796c2442d1d1ed7e885a9f47a",
-      "size": 1477
+      "sha256": "905cac4f3c5c3564e27d631605b339c45eaf18b6dd2606ead4525befe6660d23",
+      "size": 1435
     },
     {
       "path": "references/audit-report.md",
@@ -27,8 +27,8 @@
     },
     {
       "path": "references/risk-patterns.md",
-      "sha256": "c9a10c8984b91f7a22a824232d2ae8d572cd87eb808cd8fc9223a632613c297a",
-      "size": 19903
+      "sha256": "6734f9cce0c933c84e53c5124293f64a61da0f9ab809a8a348e560f480726ef2",
+      "size": 19421
     },
     {
       "path": "rules/archives.yaml",
@@ -37,13 +37,13 @@
     },
     {
       "path": "rules/credentials.yaml",
-      "sha256": "af6fd8b1daadb2e295c2fc6cda4f0e6a10443395c7f40f2701f48dd0c8ce50fd",
-      "size": 3700
+      "sha256": "732296e0b19d5076cf05779b93130aa741dc7eec56c3acacd6180a03a113765d",
+      "size": 3634
     },
     {
       "path": "rules/dangerous-shell.yaml",
-      "sha256": "2335f5a5ab4133adbd1be370b025799e31981b74ef2977e67c83d3fea2d9afea",
-      "size": 2624
+      "sha256": "f19651f3daeb0ed25d3c3806d038db7f2508b80c86976b448ffcee640c547381",
+      "size": 2565
     },
     {
       "path": "rules/description-mismatch.yaml",
@@ -77,8 +77,8 @@
     },
     {
       "path": "rules/logic-bomb.yaml",
-      "sha256": "778c6cc37e68fdac8683d947729c1808eb04fa62a7b088c6d40eb0709402ac78",
-      "size": 889
+      "sha256": "aa19ec8754dd39aed720219bdb2868f29b7261037de948944208f4251e0c6fb6",
+      "size": 878
     },
     {
       "path": "rules/mcp-config.yaml",
@@ -87,8 +87,8 @@
     },
     {
       "path": "rules/obfuscation.yaml",
-      "sha256": "6210e51209a805feee12944ebe180b9ee902da4c140ed86408efdf4000de5d12",
-      "size": 2553
+      "sha256": "507181e0234ceba42741ac03572875314d3ec73beb62f08f29cc24c7da5cd76c",
+      "size": 2501
     },
     {
       "path": "rules/powershell.yaml",
@@ -102,8 +102,8 @@
     },
     {
       "path": "rules/vscode.yaml",
-      "sha256": "14431f7b45dc8b576c7fe666610b62729ad526a58c96e9fe08c773f24f1d0494",
-      "size": 783
+      "sha256": "a8466932dc759274d7e59b880eb30888b16f81d789dba76c1610ff591b070ccf",
+      "size": 768
     },
     {
       "path": "schemas/skill-auditor-report-v1.schema.json",
@@ -147,8 +147,8 @@
     },
     {
       "path": "src/skill_auditor/__init__.py",
-      "sha256": "7fc87eb7b2aaf2df235764603e15f1955215f9cd532bf06cb17da1c4481198bf",
-      "size": 69
+      "sha256": "7ae3c1d263763806d45b5bd039307076257210938578c610ccae02a952484765",
+      "size": 67
     },
     {
       "path": "src/skill_auditor/__main__.py",
@@ -157,13 +157,13 @@
     },
     {
       "path": "src/skill_auditor/action_runner.py",
-      "sha256": "4c7b4918724639330bcc2b3a084c88e69f61f37211910ebf75e357a952956201",
-      "size": 19005
+      "sha256": "dd0479cb27ba38e82d0edb95fece8c7dc2f2cd7481759f2acb8d77132c833759",
+      "size": 18806
     },
     {
       "path": "src/skill_auditor/analyzers.py",
-      "sha256": "f32ba05f6df4662920bbb1438da4bf42dfb6bbcebd723a508a8d2ff598ff446a",
-      "size": 7903
+      "sha256": "94993f0d305bc3820f6e2aca4ba56b6c8253aabf1cbe7bfbb52d7e6cd1d6abb3",
+      "size": 7696
     },
     {
       "path": "src/skill_auditor/archives.py",
@@ -172,18 +172,18 @@
     },
     {
       "path": "src/skill_auditor/baseline.py",
-      "sha256": "739ff21f7efb8b527cfe56c47d9b5f69d547ec7178072ed1dcc15f21ec025b21",
-      "size": 5026
+      "sha256": "13b73d6718fb710a4b93b736b5f6dd289242a4d7f8cddf1393a0eb1ec6ced822",
+      "size": 4977
     },
     {
       "path": "src/skill_auditor/cache.py",
-      "sha256": "07f79f241b22eaa778dcd81dbe83bf62c0c9b6c7e1c82b1a85972d16b1f42c14",
-      "size": 3871
+      "sha256": "4286202e3eec26071ad282de0937e9ca31fe6ed7a7ea9aa896f60cd371c3a70e",
+      "size": 3800
     },
     {
       "path": "src/skill_auditor/cli.py",
-      "sha256": "660735de2bcfcad9c81494b6e219fd257c56f55cfa9df721cb89e3a2579f1abf",
-      "size": 22478
+      "sha256": "c10b25f6909823415fd8bfc1a4abcb9b0f833cc3ded64c133311626bf24211c5",
+      "size": 22218
     },
     {
       "path": "src/skill_auditor/config.py",
@@ -197,23 +197,23 @@
     },
     {
       "path": "src/skill_auditor/formats.py",
-      "sha256": "7b1e38f70dd90703ef4c0f7dcc41228716941652e7f467c84ca6baa8db0538bb",
-      "size": 11129
+      "sha256": "7f395e5886bae88ea6a64fffba7f6851e6fbc3e9e380ec190a4b011d7f7dcb5a",
+      "size": 10941
     },
     {
       "path": "src/skill_auditor/identity.py",
-      "sha256": "85a46a9c430d7bb2529fabea7858a10ba36f00f893c510921989cf1369dfb49f",
-      "size": 3717
+      "sha256": "7a8f0eb106556825ebfb0f80a5906e9b4ba1979ac0953d082cf14e1449535590",
+      "size": 3615
     },
     {
       "path": "src/skill_auditor/installer.py",
-      "sha256": "931fe038aa36d0eea76dcd5415719d15417aa8b602f1e7fc8925102fb7b57ca7",
-      "size": 26714
+      "sha256": "4f3a4f87d952dbbc66b34a989d31b4034ec778c14e822ef1ff31d41456fd5585",
+      "size": 29193
     },
     {
       "path": "src/skill_auditor/integrity.py",
-      "sha256": "03dfd6d19c8ad8c8da335f2cb611b824940cc67a3f63048fff99844fca14ef06",
-      "size": 4431
+      "sha256": "f214d5212d22b6611b9f07b03445a5830751e059a7f346e91fa0cba9976b7ced",
+      "size": 4373
     },
     {
       "path": "src/skill_auditor/manifest.py",
@@ -247,13 +247,13 @@
     },
     {
       "path": "src/skill_auditor/rules/credentials.yaml",
-      "sha256": "af6fd8b1daadb2e295c2fc6cda4f0e6a10443395c7f40f2701f48dd0c8ce50fd",
-      "size": 3700
+      "sha256": "732296e0b19d5076cf05779b93130aa741dc7eec56c3acacd6180a03a113765d",
+      "size": 3634
     },
     {
       "path": "src/skill_auditor/rules/dangerous-shell.yaml",
-      "sha256": "2335f5a5ab4133adbd1be370b025799e31981b74ef2977e67c83d3fea2d9afea",
-      "size": 2624
+      "sha256": "f19651f3daeb0ed25d3c3806d038db7f2508b80c86976b448ffcee640c547381",
+      "size": 2565
     },
     {
       "path": "src/skill_auditor/rules/description-mismatch.yaml",
@@ -297,8 +297,8 @@
     },
     {
       "path": "src/skill_auditor/rules/obfuscation.yaml",
-      "sha256": "6210e51209a805feee12944ebe180b9ee902da4c140ed86408efdf4000de5d12",
-      "size": 2553
+      "sha256": "507181e0234ceba42741ac03572875314d3ec73beb62f08f29cc24c7da5cd76c",
+      "size": 2501
     },
     {
       "path": "src/skill_auditor/rules/powershell.yaml",
@@ -312,13 +312,13 @@
     },
     {
       "path": "src/skill_auditor/rules/vscode.yaml",
-      "sha256": "14431f7b45dc8b576c7fe666610b62729ad526a58c96e9fe08c773f24f1d0494",
-      "size": 783
+      "sha256": "a8466932dc759274d7e59b880eb30888b16f81d789dba76c1610ff591b070ccf",
+      "size": 768
     },
     {
       "path": "src/skill_auditor/rules_loader.py",
-      "sha256": "8c1bbcca2cd87d9203e8fc7e3bf45e6716624fd0c0c39483cea9d6436ef2e803",
-      "size": 10834
+      "sha256": "b196f6edf027899e996524be04b85918aeec6539b2f33abf55129daa7289a0fa",
+      "size": 10724
     },
     {
       "path": "src/skill_auditor/sanitize.py",
@@ -337,8 +337,8 @@
     },
     {
       "path": "src/skill_auditor/semantic.py",
-      "sha256": "98b3ce81c1d2c1e9ae2f1a8f933b91b0a3e232c39ceb6def460a1be0a9af98d3",
-      "size": 10181
+      "sha256": "b776455364e7f9e306c724c99f9781591a03df1ff96b69397070a3fe7a4c90f6",
+      "size": 10052
     },
     {
       "path": "src/skill_auditor/target.py",

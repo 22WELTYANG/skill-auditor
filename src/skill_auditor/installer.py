@@ -313,16 +313,21 @@ def _head_self_paths(root: Path, commit: str) -> tuple[str, ...]:
 
 
 def build_payload_manifest(source: Path, *, include_untracked: bool = False) -> dict:
-    """Return the canonical checksum document for a reviewed Git checkout."""
+    """Return checksums for the Git-canonical form of the reviewed payload.
+
+    The real index is read without applying working-tree filters or executing
+    configured clean processes.  Maintainers must stage payload changes before
+    regenerating the manifest.  This keeps the result stable when a Windows
+    checkout presents CRLF bytes while the committed blobs use LF.
+    """
 
     try:
         root = source.expanduser().resolve(strict=True)
     except OSError as exc:
         raise InstallError(f"cannot resolve self-install source: {exc}") from exc
-    entries = [
-        _entry_from_file(root, relative)
-        for relative in _tracked_self_paths(root, include_untracked=include_untracked)
-    ]
+    entries = _canonical_payload_entries(
+        root, include_untracked=include_untracked
+    )
     return {
         "schema": PAYLOAD_SCHEMA,
         "files": [
@@ -400,6 +405,64 @@ def _tracked_self_paths(
     return tuple(sorted(output))
 
 
+def _canonical_payload_entries(
+    root: Path, *, include_untracked: bool
+) -> tuple[PayloadEntry, ...]:
+    tracked = _tracked_self_paths(root)
+    if include_untracked:
+        combined = _tracked_self_paths(root, include_untracked=True)
+        untracked = sorted(set(combined) - set(tracked))
+        if untracked:
+            raise InstallError(
+                f"payload file must be staged before manifest generation: {untracked[0]}"
+            )
+    if not tracked:
+        return ()
+    listed = _run_local_git(
+        root,
+        ["ls-files", "--stage", "-z", "--", *tracked],
+    )
+    if listed.returncode:
+        raise InstallError("cannot inspect the canonical payload index")
+    entries = [
+        _entry_from_index_record(root, record)
+        for record in listed.stdout.split(b"\0")
+        if record
+    ]
+    return _validate_payload(entries)
+
+
+def _entry_from_index_record(root: Path, record: bytes) -> PayloadEntry:
+    if b"\t" not in record:
+        raise InstallError("canonical payload index contains an invalid entry")
+    metadata, raw_path = record.split(b"\t", 1)
+    fields = metadata.split()
+    if len(fields) != 3 or fields[2] != b"0":
+        raise InstallError("canonical payload index contains an unresolved entry")
+    mode, object_id, _stage = fields
+    if mode not in {b"100644", b"100755"}:
+        raise InstallError("canonical payload entry is not a regular file")
+    try:
+        relative = raw_path.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise InstallError("canonical payload path is not valid UTF-8") from exc
+    normalized = _safe_relative_path(relative)
+    if not _is_self_payload_path(PurePosixPath(normalized)):
+        raise InstallError("canonical payload index contains an unexpected path")
+    content_result = _run_local_git(
+        root,
+        ["cat-file", "blob", object_id.decode("ascii")],
+    )
+    if content_result.returncode:
+        raise InstallError(f"cannot read canonical payload file {normalized}")
+    content = content_result.stdout
+    return PayloadEntry(
+        normalized,
+        len(content),
+        hashlib.sha256(content).hexdigest(),
+        0o755 if mode == b"100755" else 0o644,
+        content,
+    )
 def _read_payload_manifest(
     root: Path, commit: str
 ) -> dict[str, dict[str, object]]:

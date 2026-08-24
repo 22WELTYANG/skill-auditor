@@ -284,10 +284,11 @@ def test_self_payload_rejects_matching_payload_and_manifest_drift(tmp_path, stag
     _commit_fixture(source)
 
     (source / "SKILL.md").write_text("malicious but checksummed\n", encoding="utf-8")
-    installer.write_payload_manifest(source)
     if staged:
+        subprocess.run(["git", "add", "SKILL.md"], cwd=source, check=True)
+        installer.write_payload_manifest(source)
         subprocess.run(
-            ["git", "add", "SKILL.md", installer.PAYLOAD_MANIFEST],
+            ["git", "add", installer.PAYLOAD_MANIFEST],
             cwd=source,
             check=True,
         )
@@ -329,10 +330,15 @@ def test_shipped_payload_manifest_is_complete_and_not_self_referential():
     assert "scripts/run_tests.py" not in installed_paths
     assert "scripts/research_corpus.py" not in installed_paths
     assert not any(path.startswith(("build/", "dist/", "tests/")) for path in installed_paths)
-    for item in recorded["files"]:
-        content = (ROOT / item["path"]).read_bytes()
-        assert len(content) == item["size"]
-        assert hashlib.sha256(content).hexdigest() == item["sha256"]
+    if (ROOT / ".git").exists():
+        assert recorded == installer.build_payload_manifest(
+            ROOT, include_untracked=True
+        )
+    else:
+        for item in recorded["files"]:
+            content = (ROOT / item["path"]).read_bytes()
+            assert len(content) == item["size"]
+            assert hashlib.sha256(content).hexdigest() == item["sha256"]
 
 
 def test_repository_payload_checksum_manifest_is_current():
@@ -343,6 +349,65 @@ def test_repository_payload_checksum_manifest_is_current():
     )
     expected = installer.build_payload_manifest(ROOT, include_untracked=True)
     assert recorded == expected
+
+
+def test_payload_manifest_uses_git_canonical_line_endings(tmp_path):
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "agents").mkdir()
+    (source / ".gitattributes").write_text(
+        "SKILL.md text eol=lf\nLICENSE text eol=lf\nagents/blob.bin -text\n",
+        encoding="utf-8",
+    )
+    (source / "SKILL.md").write_bytes(b"skill\r\n")
+    (source / "LICENSE").write_bytes(b"license\r\n")
+    binary = b"binary\r\n\x00payload"
+    (source / "agents" / "blob.bin").write_bytes(binary)
+    subprocess.run(["git", "init", "-q"], cwd=source, check=True)
+    subprocess.run(
+        [
+            "git",
+            "add",
+            ".gitattributes",
+            "SKILL.md",
+            "LICENSE",
+            "agents/blob.bin",
+        ],
+        cwd=source,
+        check=True,
+    )
+
+    index_before = subprocess.check_output(
+        ["git", "ls-files", "--stage", "-z"], cwd=source
+    )
+    manifest = installer.build_payload_manifest(source)
+    index_after = subprocess.check_output(
+        ["git", "ls-files", "--stage", "-z"], cwd=source
+    )
+    assert index_after == index_before
+    recorded = {item["path"]: item for item in manifest["files"]}
+    assert recorded["SKILL.md"]["size"] == len(b"skill\n")
+    assert recorded["SKILL.md"]["sha256"] == hashlib.sha256(b"skill\n").hexdigest()
+    assert recorded["LICENSE"]["size"] == len(b"license\n")
+    assert recorded["agents/blob.bin"]["size"] == len(binary)
+    assert recorded["agents/blob.bin"]["sha256"] == hashlib.sha256(binary).hexdigest()
+
+    (source / "agents" / "new.txt").write_text("new\n", encoding="utf-8")
+    with pytest.raises(installer.InstallError, match="must be staged"):
+        installer.build_payload_manifest(source, include_untracked=True)
+    subprocess.run(["git", "add", "agents/new.txt"], cwd=source, check=True)
+    staged_manifest = installer.build_payload_manifest(
+        source, include_untracked=True
+    )
+    assert "agents/new.txt" in {
+        item["path"] for item in staged_manifest["files"]
+    }
+
+    installer.write_payload_manifest(source)
+    subprocess.run(["git", "add", installer.PAYLOAD_MANIFEST], cwd=source, check=True)
+    _commit_fixture(source)
+    entries = {entry.path: entry for entry in installer.self_payload(source)}
+    assert entries["SKILL.md"].content == b"skill\n"
 
 
 @pytest.mark.parametrize(
