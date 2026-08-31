@@ -3,16 +3,21 @@
 This checklist is release readiness documentation. Completing a checkbox does
 not authorize creating a tag, publishing to PyPI, or creating a GitHub Release.
 
-## Current verified state (2026-08-31)
+## Release outcome (2026-08-31)
 
 - [x] `pyproject.toml`, `src/skill_auditor/__init__.py`, and `SKILL.md` declare
   `0.9.0`.
-- [x] Local and remote tags stop at `v0.8.0`; no `v0.9.0` tag exists.
-- [x] PyPI latest is `0.8.0`.
-- [x] GitHub Latest Release is `v0.8.0`.
+- [x] Annotated tag `v0.9.0` points to release commit
+  `cee3670e8be16527f73ec435110355f10e3dcc3f`.
+- [x] PyPI latest is `0.9.0`, published through Trusted Publishing.
+- [x] GitHub Latest Release is `v0.9.0` with wheel, sdist, payload manifest,
+  and `SHA256SUMS` assets.
 - [x] `release.yml` verifies the tag/version match, builds wheel and sdist,
   runs tests, uses PyPI Trusted Publishing, then creates the GitHub Release.
-- [ ] Approve the final v0.9.0 changelog and release notes.
+- [x] The v0.9.0 changelog and generated release notes are published.
+- [x] The v0.9.0 GitHub Release was completed from the workflow's verified
+  artifact after the original release job lacked an explicit `--repo`; the
+  workflow is corrected on `main` for future releases.
 
 ## 1. Release candidate review
 
@@ -76,12 +81,12 @@ not authorize creating a tag, publishing to PyPI, or creating a GitHub Release.
 
 ## 6. Post-release verification
 
-- [ ] PyPI shows `skill-auditor 0.9.0`, Trusted Publishing provenance, wheel,
+- [x] PyPI shows `skill-auditor 0.9.0`, Trusted Publishing provenance, wheel,
   and sdist.
-- [ ] GitHub shows `v0.9.0` as Latest Release with distributions,
+- [x] GitHub shows `v0.9.0` as Latest Release with distributions,
   `skill-auditor-payload.json`, and `SHA256SUMS`.
-- [ ] Install from PyPI in a clean environment and repeat clean/malicious smoke
+- [x] Install from PyPI in a clean environment and repeat clean/malicious smoke
   tests.
 - [ ] Verify badges and README Quick Start resolve to the published release.
-- [ ] Record the release and updated adoption snapshot in
+- [x] Record the release and updated adoption snapshot in
   `docs/OPEN_SOURCE_ADOPTION.md`.

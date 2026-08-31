@@ -21,7 +21,7 @@ not recorded in this snapshot.
 | External public Issues | 0 | No public Issues existed at snapshot time |
 | External human Pull Requests | 0 | Maintainer and Dependabot PRs are excluded |
 | Verified external Action integrations | 0 | Exact public code search returned no external repository matches |
-| Public releases | 2 | `v0.4.0` and `v0.8.0`; `v0.9.0` is not released |
+| Public releases | 3 | `v0.4.0`, `v0.8.0`, and `v0.9.0` |
 
 These are dated facts, not targets and not live counters. Refresh the snapshot
 before using it in an application.
@@ -112,10 +112,11 @@ gh search code 'uses: 22WELTYANG/skill-auditor' --limit 100
 Public releases verified at snapshot time:
 
 - `v0.4.0` — 2026-06-11
-- `v0.8.0` — 2026-06-13, current GitHub and PyPI release
+- `v0.8.0` — 2026-06-13
+- `v0.9.0` — 2026-08-31, current GitHub and PyPI release
 
-`v0.9.0` is release-ready source work only. Do not count it until both the tag
-and published release exist.
+The v0.9.0 release includes wheel and sdist distributions, a payload manifest,
+and published SHA-256 checksums.
 
 ## 13. Security impact examples
 
