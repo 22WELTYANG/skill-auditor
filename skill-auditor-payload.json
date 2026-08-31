@@ -12,13 +12,13 @@
     },
     {
       "path": "agents/openai.yaml",
-      "sha256": "13c8f7f2595e2fe961c2a2d2bb4d493ed06835625de857ed3addda2c4a388a01",
-      "size": 209
+      "sha256": "1c080c33c7c9fb84806d497efe1086ac1d127571d9b390a6c1e4041932237fb9",
+      "size": 211
     },
     {
       "path": "pyproject.toml",
-      "sha256": "905cac4f3c5c3564e27d631605b339c45eaf18b6dd2606ead4525befe6660d23",
-      "size": 1435
+      "sha256": "e5a0695b4aef81f226ac5b2322fad1acba8c02a21704d4e9ea17b152a8ff4cd0",
+      "size": 2186
     },
     {
       "path": "references/audit-report.md",

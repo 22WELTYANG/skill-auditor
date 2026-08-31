@@ -1,0 +1,47 @@
+name: False negative / missed detection
+description: Report risky behavior the current rules do not detect.
+title: "[Missed detection]: "
+labels: []
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: Use inert domains and placeholders. Do not post live credentials, malware, or private vulnerability details.
+  - type: input
+    id: version
+    attributes:
+      label: Skill Auditor version
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Risky behavior
+      description: Describe what the Skill can do and why it is unsafe.
+    validations:
+      required: true
+  - type: textarea
+    id: reproducer
+    attributes:
+      label: Neutralized minimal reproducer
+      description: Use example.invalid or example.com and remove executable payloads.
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Expected severity
+      options:
+        - CRITICAL
+        - WARNING
+        - INFO
+        - Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Current scanner output
+      description: Include scan status, exit code, and relevant redacted report section.
+    validations:
+      required: true

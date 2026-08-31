@@ -1,0 +1,36 @@
+name: False positive
+description: Report a benign pattern that Skill Auditor flags incorrectly.
+title: "[False positive]: "
+labels: []
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: Redact private content and explain why the matched behavior is benign in context.
+  - type: input
+    id: version
+    attributes:
+      label: Skill Auditor version
+    validations:
+      required: true
+  - type: input
+    id: rule
+    attributes:
+      label: Rule ID and severity
+      placeholder: "Example: DYNAMIC-PY-002 / WARNING"
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Minimal safe reproducer
+      description: Paste the smallest redacted snippet that triggers the finding.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Why this is benign
+      description: Explain expected use, data flow, and the boundary that should prevent a match.
+    validations:
+      required: true

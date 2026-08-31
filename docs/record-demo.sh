@@ -13,16 +13,28 @@ cd "$(dirname "$0")/.."
 CAST="docs/demo.cast"
 GIF="docs/demo.gif"
 
+for command in asciinema agg python; do
+  if ! command -v "$command" >/dev/null 2>&1; then
+    echo "missing required command: $command" >&2
+    exit 1
+  fi
+done
+
 rm -f "$CAST"
 asciinema rec "$CAST" --cols 100 --rows 32 --idle-time-limit 2 --command '
+  set -eu
   echo "\$ python scripts/scan.py examples/malicious-skill --format text"
   sleep 1
-  python scripts/scan.py examples/malicious-skill --format text
+  malicious_exit=0
+  python scripts/scan.py examples/malicious-skill --format text || malicious_exit=$?
+  echo "expected gate exit: $malicious_exit"
+  test "$malicious_exit" -eq 2
   sleep 3
   echo
   echo "\$ python scripts/scan.py examples/clean-skill --format text"
   sleep 1
   python scripts/scan.py examples/clean-skill --format text
+  echo "expected gate exit: 0"
   sleep 3
 '
 agg --font-size 14 "$CAST" "$GIF"

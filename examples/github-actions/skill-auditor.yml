@@ -1,0 +1,33 @@
+name: Skill security
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions: {}
+
+jobs:
+  audit-skills:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: 22WELTYANG/skill-auditor@2d372dfceca674f019cd4e326aa541a4f809b8b3
+        with:
+          path: .
+          recursive: "true"
+          fail-on: critical
+          min-severity: info
+          baseline: auto
+          upload-sarif: "true"
+          upload-report: "true"
+          artifact-name: skill-auditor-report
+          sarif-category: skill-auditor

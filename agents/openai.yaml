@@ -1,4 +1,4 @@
 interface:
   display_name: "Skill Auditor"
-  short_description: "Audit third-party skills before installation"
+  short_description: "Scan AI Agent Skills for prompt and code risks"
   default_prompt: "Use $skill-auditor to audit this third-party Agent skill before I install it."

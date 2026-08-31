@@ -1,0 +1,25 @@
+name: Feature request
+description: Propose a focused usability, integration, or reporting improvement.
+title: "[Feature]: "
+labels: []
+assignees: []
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+      description: What workflow is difficult today, and who encounters it?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed outcome
+      description: Describe the smallest useful change without assuming a specific implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility and security impact
+      description: Consider CLI stability, zero dependencies, platforms, SARIF, and fail-closed behavior.

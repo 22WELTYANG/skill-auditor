@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Private security vulnerability
+    url: https://github.com/22WELTYANG/skill-auditor/security/advisories/new
+    about: Report vulnerabilities in Skill Auditor privately; never post secrets in an Issue.
+  - name: Support guide
+    url: https://github.com/22WELTYANG/skill-auditor/blob/main/SUPPORT.md
+    about: Check usage, redaction, and support guidance before filing.

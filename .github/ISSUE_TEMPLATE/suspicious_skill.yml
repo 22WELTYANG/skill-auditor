@@ -1,0 +1,46 @@
+name: Report a suspicious Skill / rule gap
+description: Share a redacted suspicious Skill pattern that may expose a detector gap.
+title: "[Suspicious Skill]: "
+labels: []
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: Do not install or execute the Skill for this report. Remove secrets, private files, active payloads, and identifying data. Use private vulnerability reporting if disclosure could cause harm.
+  - type: input
+    id: source
+    attributes:
+      label: Public source or redacted provenance
+      description: Link a fixed public commit, or state why the source cannot be shared.
+    validations:
+      required: true
+  - type: textarea
+    id: suspicious
+    attributes:
+      label: Suspicious behavior
+      description: Explain the prompt, code, installer, network, persistence, or supply-chain behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: scanner
+    attributes:
+      label: Scanner result
+      description: Include version, command, scan status, exit code, and redacted rule IDs.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected rule or outcome
+      description: What should Skill Auditor report or block?
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: I did not execute or install the suspicious Skill to prepare this report.
+          required: true
+        - label: I removed credentials, private data, and active malicious infrastructure.
+          required: true

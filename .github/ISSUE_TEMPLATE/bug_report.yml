@@ -1,0 +1,43 @@
+name: Bug report
+description: Report reproducible incorrect behavior in the scanner, CLI, package, or integrations.
+title: "[Bug]: "
+labels: []
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: Do not include credentials, private source, or active malicious URLs.
+  - type: input
+    id: version
+    attributes:
+      label: Skill Auditor version
+      placeholder: Output of skill-auditor --version
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: OS, Python version, install method
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Include the exact redacted command and a minimal safe fixture.
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+      description: Include exit code, scan status, and redacted output.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true

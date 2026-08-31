@@ -1,14 +1,19 @@
 include LICENSE
+include CHANGELOG.md
+include CODE_OF_CONDUCT.md
+include CONTRIBUTING.md
 include README.md
 include README.zh-CN.md
+include RELEASE_CHECKLIST.md
 include SECURITY.md
 include SKILL.md
+include SUPPORT.md
 include action.yml
 include install.ps1
 include install.sh
 include skill-auditor-payload.json
 include .pre-commit-hooks.yaml
-recursive-include .github *.yml CODEOWNERS
+recursive-include .github *.md *.yml CODEOWNERS
 recursive-include agents *
 recursive-include docs *
 recursive-include examples *

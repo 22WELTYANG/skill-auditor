@@ -1,0 +1,41 @@
+name: New security rule proposal
+description: Propose a detector backed by positive and negative evidence.
+title: "[Rule proposal]: "
+labels: []
+assignees: []
+body:
+  - type: input
+    id: category
+    attributes:
+      label: Proposed category and severity
+      placeholder: "Example: credential-read / CRITICAL"
+    validations:
+      required: true
+  - type: textarea
+    id: threat
+    attributes:
+      label: Threat and real-world relevance
+      description: Explain the attacker behavior and resulting impact.
+    validations:
+      required: true
+  - type: textarea
+    id: positive
+    attributes:
+      label: Positive fixture
+      description: Provide neutralized evidence that should match.
+    validations:
+      required: true
+  - type: textarea
+    id: negative
+    attributes:
+      label: Negative fixture
+      description: Provide a nearby benign pattern that must not match.
+    validations:
+      required: true
+  - type: textarea
+    id: boundary
+    attributes:
+      label: False-positive boundary and semantic guidance
+      description: State whether deterministic evidence is sufficient or human/semantic review is needed.
+    validations:
+      required: true
