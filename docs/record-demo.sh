@@ -21,6 +21,9 @@ for command in asciinema agg python; do
 done
 
 rm -f "$CAST"
+# The command is intentionally single-quoted: its variables belong to the
+# shell spawned by asciinema, not to this recording wrapper.
+# shellcheck disable=SC2016
 asciinema rec "$CAST" --cols 100 --rows 32 --idle-time-limit 2 --command '
   set -eu
   echo "\$ python scripts/scan.py examples/malicious-skill --format text"
