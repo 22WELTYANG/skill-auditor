@@ -16,7 +16,7 @@ steps:
   - uses: actions/checkout@<FULL_COMMIT_SHA> # 固定已审阅的 checkout 版本
     with:
       fetch-depth: 0
-  - uses: 22WELTYANG/skill-auditor@<REVIEWED_V0_9_0_COMMIT_SHA>
+  - uses: 22WELTYANG/skill-auditor@02cfa26f990a5102f60519b32ee200e13a4d4ae8
     with:
       path: .
       recursive: "true"

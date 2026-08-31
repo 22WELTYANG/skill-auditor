@@ -20,7 +20,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: 22WELTYANG/skill-auditor@2d372dfceca674f019cd4e326aa541a4f809b8b3
+      - uses: 22WELTYANG/skill-auditor@02cfa26f990a5102f60519b32ee200e13a4d4ae8
         with:
           path: .
           recursive: "true"

@@ -66,10 +66,9 @@ skill-auditor scan ./skills --recursive --fail-on critical --format text
 退出码为：`0` 通过门禁，`1` 非 CRITICAL finding 触发门禁，`2` CRITICAL
 finding 触发门禁，`3` 扫描错误或覆盖不完整。
 
-> 发布状态：最新已发布包仍是 PyPI 上的
-> [v0.8.0](https://pypi.org/project/skill-auditor/0.8.0/)。当前仓库正在准备
-> **v0.9.0（尚未发布）**。可用 `python -m pip install .` 测试源码候选版本，
-> 但不能假设 PyPI 已包含 v0.9.0 的加固内容。
+> 发布状态：当前正式版本为 **v0.9.0**，可从
+> [PyPI](https://pypi.org/project/skill-auditor/0.9.0/) 与
+> [GitHub](https://github.com/22WELTYANG/skill-auditor/releases/tag/v0.9.0) 获取。
 
 ## 为什么选择 Skill Auditor？
 
@@ -143,15 +142,13 @@ $ skill-auditor scan examples/clean-skill --format text
 
 ### Python 包
 
-v0.9.0 发布后，默认从 PyPI 安装精确版本，不使用可变的源码分支：
+默认从 PyPI 安装精确版本，不使用可变的源码分支：
 
 ```bash
 python -m pip install skill-auditor==0.9.0
 ```
 
-在该版本正式发布前，不要把已发布的 v0.8.0 当作已经包含这些安全修复。测试
-未发布的 v0.9.0 开发版本时，请使用 Python 3.9 或更高版本并安装这个经过审阅
-的源码检出：
+测试经过审阅的源码检出时，请使用 Python 3.9 或更高版本：
 
 ```bash
 python -m venv .venv
@@ -184,13 +181,12 @@ skill-auditor --version
 skill-auditor .\examples\clean-skill --format json
 ```
 
-v0.9.0 发布后，只从经过审阅的 release 完整提交安装 Agent Skill（请把占位符
-替换为完整 commit SHA）：
+只从经过审阅的 v0.9.0 完整提交安装 Agent Skill：
 
 ```powershell
 git clone https://github.com/22WELTYANG/skill-auditor.git
 Set-Location skill-auditor
-git checkout --detach <REVIEWED_V0_9_0_COMMIT_SHA>
+git checkout --detach 02cfa26f990a5102f60519b32ee200e13a4d4ae8
 .\install.ps1
 # 如果本机策略阻止脚本：
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
@@ -198,12 +194,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 
 ### 从固定版本安装 Agent Skill
 
-v0.9.0 发布后，先在固定提交的检出中审阅安装器，再本地运行：
+先在固定的 v0.9.0 提交检出中审阅安装器，再本地运行：
 
 ```bash
 git clone https://github.com/22WELTYANG/skill-auditor.git
 cd skill-auditor
-git checkout --detach <REVIEWED_V0_9_0_COMMIT_SHA>
+git checkout --detach 02cfa26f990a5102f60519b32ee200e13a4d4ae8
 bash install.sh
 ```
 
@@ -269,7 +265,7 @@ steps:
     with:
       fetch-depth: 0
       persist-credentials: false
-  - uses: 22WELTYANG/skill-auditor@<REVIEWED_V0_9_0_COMMIT_SHA>
+  - uses: 22WELTYANG/skill-auditor@02cfa26f990a5102f60519b32ee200e13a4d4ae8
     with:
       path: .
       recursive: "true"
@@ -311,7 +307,7 @@ pre-commit 配置：
 ```yaml
 repos:
   - repo: https://github.com/22WELTYANG/skill-auditor
-    rev: <REVIEWED_V0_9_0_COMMIT_SHA>
+    rev: 02cfa26f990a5102f60519b32ee200e13a4d4ae8
     hooks:
       - id: skill-auditor
 ```

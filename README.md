@@ -68,11 +68,9 @@ The text report shows `CRITICAL`, `WARNING`, and `INFO` totals plus
 Exit codes are `0` gate passed, `1` non-critical finding met the gate, `2`
 critical finding met the gate, and `3` scan error or incomplete coverage.
 
-> Release status: the latest published package is
-> [v0.8.0 on PyPI](https://pypi.org/project/skill-auditor/0.8.0/). This repository
-> is preparing **v0.9.0 (unreleased)**. Install this checkout with
-> `python -m pip install .` to test its release candidate; do not assume PyPI
-> already contains the v0.9.0 hardening.
+> Release status: **v0.9.0** is the current release on
+> [PyPI](https://pypi.org/project/skill-auditor/0.9.0/) and
+> [GitHub](https://github.com/22WELTYANG/skill-auditor/releases/tag/v0.9.0).
 
 ## Why Skill Auditor?
 
@@ -149,16 +147,13 @@ The full output is generated from the current scanner by
 
 ### Python package
 
-After v0.9.0 is published, the default installation path is the exact PyPI
-version, not a mutable source branch:
+Install the exact PyPI release rather than a mutable source branch:
 
 ```bash
 python -m pip install skill-auditor==0.9.0
 ```
 
-Until that release exists, do not treat the published v0.8.0 package as carrying
-these security fixes. To test the unreleased v0.9.0 development tree, use Python
-3.9 or newer and install this reviewed checkout:
+To test a reviewed source checkout, use Python 3.9 or newer:
 
 ```bash
 python -m venv .venv
@@ -191,13 +186,12 @@ skill-auditor --version
 skill-auditor .\examples\clean-skill --format json
 ```
 
-After v0.9.0 is published, install the Agent Skill only from its reviewed release
-commit (replace the placeholder with the full commit SHA):
+Install the Agent Skill only from its reviewed v0.9.0 commit:
 
 ```powershell
 git clone https://github.com/22WELTYANG/skill-auditor.git
 Set-Location skill-auditor
-git checkout --detach <REVIEWED_V0_9_0_COMMIT_SHA>
+git checkout --detach 02cfa26f990a5102f60519b32ee200e13a4d4ae8
 .\install.ps1
 # If local policy blocks scripts:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
@@ -205,13 +199,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 
 ### Agent Skill from a fixed release
 
-After v0.9.0 is published, review the installer in its fixed commit checkout
-before running it locally:
+Review the installer in the fixed v0.9.0 commit checkout before running it
+locally:
 
 ```bash
 git clone https://github.com/22WELTYANG/skill-auditor.git
 cd skill-auditor
-git checkout --detach <REVIEWED_V0_9_0_COMMIT_SHA>
+git checkout --detach 02cfa26f990a5102f60519b32ee200e13a4d4ae8
 bash install.sh
 ```
 
@@ -281,7 +275,7 @@ steps:
     with:
       fetch-depth: 0
       persist-credentials: false
-  - uses: 22WELTYANG/skill-auditor@<REVIEWED_V0_9_0_COMMIT_SHA>
+  - uses: 22WELTYANG/skill-auditor@02cfa26f990a5102f60519b32ee200e13a4d4ae8
     with:
       path: .
       recursive: "true"
@@ -325,7 +319,7 @@ For pre-commit:
 ```yaml
 repos:
   - repo: https://github.com/22WELTYANG/skill-auditor
-    rev: <REVIEWED_V0_9_0_COMMIT_SHA>
+    rev: 02cfa26f990a5102f60519b32ee200e13a4d4ae8
     hooks:
       - id: skill-auditor
 ```

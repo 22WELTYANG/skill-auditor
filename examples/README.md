@@ -10,6 +10,6 @@ These examples use only interfaces implemented by the current repository.
 - `clean-skill/` and `malicious-skill/` are regression/demo fixtures, not
   installable recommendations.
 
-Until v0.9.0 is released, integration files pin the reviewed v0.9.0 preparation
-commit `2d372dfceca674f019cd4e326aa541a4f809b8b3`. Replace it with the final
-reviewed v0.9.0 release commit after publication.
+Integration files pin reviewed v0.9.0 commit
+`02cfa26f990a5102f60519b32ee200e13a4d4ae8` so copied workflows do not depend
+on a mutable branch or tag.

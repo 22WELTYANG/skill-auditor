@@ -1,5 +1,5 @@
 repos:
   - repo: https://github.com/22WELTYANG/skill-auditor
-    rev: 2d372dfceca674f019cd4e326aa541a4f809b8b3
+    rev: 02cfa26f990a5102f60519b32ee200e13a4d4ae8
     hooks:
       - id: skill-auditor
