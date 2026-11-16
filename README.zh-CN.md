@@ -1,6 +1,6 @@
-[English](./README.md) | 简体中文
-
 # 🛡️ Skill Auditor
+
+[English](./README.md) | 简体中文
 
 <p align="center">
   <strong>面向 AI Agent Skill、Codex、Claude Code、Cursor、提示注入、恶意安装脚本、凭据访问、数据外泄与供应链风险的安全扫描器。</strong>

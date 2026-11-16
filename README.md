@@ -1,6 +1,6 @@
-English | [简体中文](./README.zh-CN.md)
-
 # 🛡️ Skill Auditor
+
+English | [简体中文](./README.zh-CN.md)
 
 <p align="center">
   <strong>Security scanner for AI agent skills, Codex, Claude Code, Cursor, prompt injection, malicious install scripts, credential access, data exfiltration, and supply-chain risks.</strong>
