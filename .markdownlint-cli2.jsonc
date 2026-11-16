@@ -1,0 +1,11 @@
+{
+  "globs": ["README.md", "README.zh-CN.md"],
+  "config": {
+    "default": true,
+    // Keep long badge URLs, tables, and Chinese paragraphs readable in source.
+    "MD013": false,
+    "MD033": {
+      "allowed_elements": ["p", "strong", "a", "img", "br"]
+    }
+  }
+}

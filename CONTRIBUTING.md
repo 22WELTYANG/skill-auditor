@@ -60,6 +60,17 @@ python -m build
 python -m twine check dist/*
 ```
 
+For README changes, install Node.js and npm, then run the same Markdown check
+as CI:
+
+```bash
+npx --yes markdownlint-cli2@0.18.1
+```
+
+The configuration checks `README.md` and `README.zh-CN.md`, requires a top-level
+heading first, allows the HTML elements used by badges and layout, and disables
+the line-length limit for long URLs, tables, and Chinese paragraphs.
+
 Also smoke-test `skill-auditor --version`, a clean fixture, and the intentionally
 malicious fixture. Do not execute target Skill content during review.
 
